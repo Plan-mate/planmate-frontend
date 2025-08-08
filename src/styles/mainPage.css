@@ -1,0 +1,240 @@
+body {
+  background: linear-gradient(120deg, #f8fafc 0%, #e0e7ff 100%);
+  min-height: 100vh;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+.main-vertical {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 40px 0 0 0;
+  min-height: 60vh;
+}
+
+
+.main-text-wide {
+  width: 100%;
+  max-width: 900px;
+  padding: 36px 0 32px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* 중앙 정렬로 변경 */
+}
+
+.introTitle {
+  font-size: 2.7rem;
+  font-weight: 900;
+  background: linear-gradient(90deg, #2563eb 30%, #38bdf8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 22px;
+  line-height: 1.2;
+  letter-spacing: -1px;
+  text-shadow: 0 2px 16px #2563eb22;
+}
+
+.introDesc {
+  font-size: 1.32rem;
+  color: #2563eb;
+  background: linear-gradient(120deg, #f1f5fd 60%, #e0e7ff 100%);
+  border-radius: 18px;
+  padding: 22px 36px;
+  margin-bottom: 36px;
+  line-height: 1.8;
+  box-shadow: 0 4px 24px #2563eb18;
+  border: 1.5px solid #e0e7ff;
+  text-align: center;
+  font-weight: 500;
+  letter-spacing: -0.5px;
+  transition: box-shadow 0.18s, border 0.18s;
+}
+
+.introDesc:hover {
+  box-shadow: 0 8px 32px #2563eb33;
+  border: 1.5px solid #2563eb55;
+}
+
+.main-cards-horizontal {
+  width: 100%;
+  max-width: 900px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 28px;
+  margin-top: 8px;
+}
+
+.card {
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 2px 16px #2563eb18;
+  padding: 32px 18px 26px 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 120px;
+  border: 1.5px solid #e0e7ff;
+  transition: box-shadow 0.22s, transform 0.22s, border 0.22s;
+  position: relative;
+  overflow: hidden;
+}
+.card:hover {
+  box-shadow: 0 8px 32px #2563eb33;
+  transform: translateY(-4px) scale(1.04);
+  border: 1.5px solid #2563eb55;
+}
+.cardIcon {
+  font-size: 2.5rem;
+  margin-bottom: 14px;
+  background: linear-gradient(120deg, #2563eb 60%, #38bdf8 100%);
+  color: #fff;
+  border-radius: 50%;
+  width: 54px;
+  height: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px #2563eb22;
+}
+.cardTitle {
+  font-size: 1.18rem;
+  font-weight: 800;
+  color: #2563eb;
+  margin-bottom: 6px;
+  letter-spacing: -0.5px;
+}
+.cardDesc {
+  font-size: 1.05rem;
+  color: #334155;
+  text-align: center;
+}
+
+.footer {
+  margin-top: 10%;
+  text-align: center;
+  color: #888;
+  font-size: 0.98rem;
+  letter-spacing: 0.2px;
+  border-top: 1px solid #e5e7eb;
+  padding-top: 18px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 32px 0 24px 0;
+  max-width: 900px;
+  margin: 0 auto;
+}
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.7rem;
+  font-weight: 700;
+  color: #2563eb;
+}
+.kakaoBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fee500;
+  color: #3c1e1e;
+  border: none;
+  border-radius: 999px;
+  padding: 10px 22px;
+  font-size: 1rem;
+  font-weight: 600;
+  box-shadow: 0 2px 8px #fee50044;
+  cursor: pointer;
+  transition: box-shadow 0.18s, background 0.18s;
+}
+.kakaoBtn:hover {
+  box-shadow: 0 4px 16px #fee50066;
+  background: #ffe066;
+}
+
+@media (max-width: 1100px) {
+  .main-text-wide, .main-cards-horizontal {
+    max-width: 98vw;
+  }
+}
+@media (max-width: 900px) {
+  .main-cards-horizontal {
+    grid-template-columns: 1fr;
+    gap: 18px;
+    padding: 0 10px;
+  }
+  .main-text-wide {
+    padding: 24px 8px 20px 8px;
+  }
+  .introTitle {
+    font-size: 2rem;
+    text-align: center;
+  }
+  .introDesc {
+    font-size: 1.05rem;
+    padding: 16px 10px;
+    margin-bottom: 24px;
+  }
+  .header {
+    padding: 22px 8px 16px 8px;
+    max-width: 98vw;
+  }
+  .logo {
+    font-size: 1.2rem;
+    gap: 6px;
+  }
+  .kakaoBtn {
+    font-size: 0.95rem;
+    padding: 8px 14px;
+  }
+}
+@media (max-width: 600px) {
+  .main-cards-horizontal {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 0 4px;
+  }
+  .main-text-wide {
+    padding: 16px 2px 12px 2px;
+  }
+  .introTitle {
+    font-size: 1.3rem;
+    text-align: center;
+  }
+  .introDesc {
+    font-size: 0.98rem;
+    padding: 10px 4px;
+    margin-bottom: 16px;
+  }
+  .footer {
+    margin-top: 24px;
+    font-size: 0.92rem;
+    padding-top: 10px;
+  }
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 4px 10px 4px;
+  }
+  .logo {
+    font-size: 1rem;
+    gap: 4px;
+  }
+  .kakaoBtn {
+    font-size: 0.9rem;
+    padding: 7px 10px;
+    width: 100%;
+    justify-content: center;
+  }
+}
