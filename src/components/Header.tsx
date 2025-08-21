@@ -1,6 +1,14 @@
 import LogoIcon from "@/components/LogoIcon";
 
 export default function Header() {
+  const handleKakaoLogin = () => {
+    const clientId = process.env.NEXT_PUBLIC_KAKAO_REST_API_KEY;
+    const redirectUri = process.env.NEXT_PUBLIC_KAKAO_REDIRECT_URI;
+    const authUrl = `https://kauth.kakao.com/oauth/authorize?response_type=code&client_id=${clientId}&redirect_uri=${redirectUri}`;
+    
+    window.location.href = authUrl; 
+  };
+
   return (
     <header className="header" style={{
       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -13,7 +21,7 @@ export default function Header() {
       <button
         className="kakaoBtn"
         style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#fee500', color: '#3c1e1e', border: 'none', borderRadius: '999px', padding: '10px 22px', fontSize: '1rem', fontWeight: 600, boxShadow: '0 2px 8px #fee50044', cursor: 'pointer' }}
-        onClick={() => alert('카카오 소셜 로그인 연동 예정!')}
+        onClick={handleKakaoLogin}
       >
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <ellipse cx="12" cy="12" rx="12" ry="12" fill="#3C1E1E"/>
