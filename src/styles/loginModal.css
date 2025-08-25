@@ -1,0 +1,92 @@
+.pm-modal-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 50;
+  animation: pm-fade-in 180ms ease-out;
+}
+
+.pm-modal {
+  width: min(400px, 92%);
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.18);
+  padding: 22px 22px 18px;
+  animation: pm-scale-in 200ms ease-out;
+}
+
+.pm-modal-title {
+  font-size: 1.25rem;
+  font-weight: 800;
+  margin: 2px 2px 16px 2px;
+  letter-spacing: -0.01em;
+}
+
+.pm-modal-desc {
+  color: #5b5b5b;
+  line-height: 1.7;
+  margin: 6px 2px 6px;
+  text-align: left;
+}
+
+.pm-modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
+.pm-btn {
+  appearance: none;
+  border: none;
+  border-radius: 12px;
+  padding: 10px 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease, opacity 120ms ease;
+  will-change: transform;
+}
+
+.pm-btn:active {
+  transform: translateY(1px);
+}
+
+.pm-btn-cancel {
+  background: #f2f4f6;
+  color: #111827;
+}
+
+.pm-btn-cancel:hover {
+  background: #e6e9ec;
+}
+
+.pm-btn-kakao {
+  background: #fee500;
+  color: #3c1e1e;
+  box-shadow: 0 4px 14px rgba(254, 229, 0, 0.45);
+}
+
+.pm-btn-kakao:hover {
+  filter: brightness(0.98);
+}
+
+.pm-kakao-icon {
+  display: inline-flex;
+  margin-right: 8px;
+  transform: translateY(3px);
+}
+
+@keyframes pm-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes pm-scale-in {
+  from { transform: translateY(8px) scale(0.98); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+

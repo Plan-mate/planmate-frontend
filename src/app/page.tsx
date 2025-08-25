@@ -1,16 +1,45 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import "@/styles/mainPage.css";
-import Head from "next/head";
 import Header from "../components/Header";
+import { getAccessToken } from "@/api/utils/tokenStorage";
+const LoginRequiredModal = dynamic(() => import("@/components/LoginRequiredModal"), { ssr: false });
 
 export default function Home() {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    const token = getAccessToken();
+    if (token) {
+      router.replace("/plan");
+    }
+
+    const sp = new URLSearchParams(window.location.search);
+
+    if (sp.get('loginRequired') === '1') {
+      setOpen(true);
+      const url = new URL(window.location.href);
+      url.searchParams.delete('loginRequired');
+      window.history.replaceState({}, '', url.toString());
+    }
+
+    const cookieHasLoginRequired = document.cookie.split('; ').some((c) => c.startsWith('pm_login_required='));
+    if (cookieHasLoginRequired) {
+      setOpen(true);
+      document.cookie = 'pm_login_required=; path=/; max-age=0';
+    }
+  }, [router]);
+
   return (
     <>
-      <Head>
-        <title>PlanMate</title>
-      </Head>
       <Header />
+      {mounted ? <LoginRequiredModal open={open} onClose={() => setOpen(false)} /> : null}
       <main className="main-vertical">
         <section className="main-text-wide">
           <h1 className="introTitle">
