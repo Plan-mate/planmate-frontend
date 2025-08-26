@@ -23,24 +23,21 @@ export default function Header() {
     window.location.href = "/";
   };
 
+  let hasFetchedMe = false;
+
   useEffect(() => {
+    if (hasFetchedMe) return;
+    hasFetchedMe = true;
+
     const token = getAccessToken();
     if (!token) {
       setLoading(false);
       return;
     }
-    (async () => {
-      try {
-        const me = await getMe();
-        setUser(me);
-      } catch (e) {
-        setUser(null);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, []);
 
+    getMe().then(setUser).finally(() => setLoading(false));
+  }, []);
+  
   return (
     <header className="header-container">
       <div className="logo">

@@ -11,8 +11,8 @@ const apiClient = axios.create({
 });
 
 interface TokenResponse {
-    access_token: string;
-    refresh_token: string;
+    accessToken: string;
+    refreshToken: string;
 }
 
 interface ErrorResponse {
@@ -29,7 +29,6 @@ const addAuthHeaderInterceptor = (config: InternalAxiosRequestConfig) => {
 
 const refreshToken = async (): Promise<string> => {
     const refreshToken = getRefreshToken();
-    
     if (!refreshToken) {
         handleTokenFailure();
         throw new Error('No refresh token available');
@@ -37,13 +36,12 @@ const refreshToken = async (): Promise<string> => {
 
     try {
         const { data } = await axios.post<TokenResponse>(
-            `${API_BASE_URL}auth/refresh/`,
+            `${API_BASE_URL}auth/refresh`,
             {},
             { headers: { Authorization: `Bearer ${refreshToken}` } },
         );
-
-        setTokens(data.access_token, data.refresh_token);
-        return data.access_token;
+        setTokens(data.accessToken, data.refreshToken);
+        return data.accessToken;
     } catch (error) {
         console.error('Error refreshing token:', error);
         handleTokenFailure();
@@ -62,7 +60,7 @@ const handleResponseError = async (error: AxiosError<ErrorResponse>) => {
     const { status, data, config } = error.response;
     const originalRequest = config as InternalAxiosRequestConfig & { _retry?: boolean };
     
-    if (status === 401 && data?.message === '엑세스 토큰이 만료되었습니다.' && !originalRequest._retry) {
+    if (status === 401 && data?.message === '엑세스 토큰이 만료되었습니다.' && !originalRequest._retry) {      
         originalRequest._retry = true;
         
         try {
