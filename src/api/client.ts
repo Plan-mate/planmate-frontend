@@ -65,7 +65,6 @@ const handleResponseError = async (error: AxiosError<ErrorResponse>) => {
         
         try {
             const newAccessToken = await refreshToken();
-            
             (originalRequest.headers as AxiosRequestHeaders).Authorization = `Bearer ${newAccessToken}`;
             return apiClient(originalRequest);
         } catch (err) {
@@ -76,11 +75,7 @@ const handleResponseError = async (error: AxiosError<ErrorResponse>) => {
     return Promise.reject(error);
 };
 
-const setupInterceptors = () => {
-    apiClient.interceptors.request.use(addAuthHeaderInterceptor, (error) => Promise.reject(error));
-    apiClient.interceptors.response.use((response) => response, handleResponseError);
-};
-
-setupInterceptors();
+apiClient.interceptors.request.use(addAuthHeaderInterceptor, (error) => Promise.reject(error));
+apiClient.interceptors.response.use((response) => response, handleResponseError);
 
 export { apiClient as authenticatedClient, apiClient as publicClient }; 

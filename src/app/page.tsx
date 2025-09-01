@@ -6,6 +6,7 @@ import dynamic from "next/dynamic";
 import "@/styles/mainPage.css";
 import Header from "../components/Header";
 import { getAccessToken } from "@/api/utils/tokenStorage";
+
 const LoginRequiredModal = dynamic(() => import("@/components/LoginRequiredModal"), { ssr: false });
 
 export default function Home() {
@@ -15,31 +16,42 @@ export default function Home() {
 
   useEffect(() => {
     setMounted(true);
+    
     const token = getAccessToken();
     if (token) {
       router.replace("/plan");
+      return;
     }
 
-    const sp = new URLSearchParams(window.location.search);
-
-    if (sp.get('loginRequired') === '1') {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('loginRequired') === '1') {
       setOpen(true);
       const url = new URL(window.location.href);
       url.searchParams.delete('loginRequired');
       window.history.replaceState({}, '', url.toString());
     }
 
-    const cookieHasLoginRequired = document.cookie.split('; ').some((c) => c.startsWith('pm_login_required='));
-    if (cookieHasLoginRequired) {
+    const hasLoginRequiredCookie = document.cookie
+      .split('; ')
+      .some(cookie => cookie.startsWith('pm_login_required='));
+    
+    if (hasLoginRequiredCookie) {
       setOpen(true);
       document.cookie = 'pm_login_required=; path=/; max-age=0';
     }
   }, [router]);
 
+  const features = [
+    { icon: "📝", title: "일정 등록", desc: "새 일정, 간편하게!" },
+    { icon: "📋", title: "일정 요약", desc: "한눈에 보는 현황" },
+    { icon: "🌟", title: "일정 추천", desc: "내게 맞는 일정 제안" },
+    { icon: "🔔", title: "일정 알림", desc: "중요한 일정 미리 알림" }
+  ];
+
   return (
     <>
       <Header />
-      {mounted ? <LoginRequiredModal open={open} onClose={() => setOpen(false)} /> : null}
+      {mounted && <LoginRequiredModal open={open} onClose={() => setOpen(false)} />}
       <main className="main-vertical">
         <section className="main-text-wide">
           <h1 className="introTitle">
@@ -50,26 +62,13 @@ export default function Home() {
           </p>
         </section>
         <section className="main-cards-horizontal">
-          <div className="card">
-            <span className="cardIcon">📝</span>
-            <div className="cardTitle">일정 등록</div>
-            <div className="cardDesc">새 일정, 간편하게!</div>
-          </div>
-          <div className="card">
-            <span className="cardIcon">📋</span>
-            <div className="cardTitle">일정 요약</div>
-            <div className="cardDesc">한눈에 보는 현황</div>
-          </div>
-          <div className="card">
-            <span className="cardIcon">🌟</span>
-            <div className="cardTitle">일정 추천</div>
-            <div className="cardDesc">내게 맞는 일정 제안</div>
-          </div>
-          <div className="card">
-            <span className="cardIcon">🔔</span>
-            <div className="cardTitle">일정 알림</div>
-            <div className="cardDesc">중요한 일정 미리 알림</div>
-          </div>
+          {features.map((feature, index) => (
+            <div key={index} className="card">
+              <span className="cardIcon">{feature.icon}</span>
+              <div className="cardTitle">{feature.title}</div>
+              <div className="cardDesc">{feature.desc}</div>
+            </div>
+          ))}
         </section>
       </main>
       <footer className="footer">
