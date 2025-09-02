@@ -1,20 +1,10 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-
-interface Schedule {
-  id: number;
-  title: string;
-  content: string;
-  time: string;
-  category: string;
-  isCompleted: boolean;
-  startDate: string;
-  endDate: string;
-}
+import { Event } from "@/types/event";
 
 interface CalendarProps {
-  schedules: Schedule[];
+  events: Event[];
   selectedDate: string | null;
   onDateSelect: (date: string) => void;
   onMonthChange?: (month: string) => void;
@@ -22,14 +12,7 @@ interface CalendarProps {
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
-const CATEGORY_COLORS: { [key: string]: string } = {
-  '운동': '#10b981',
-  '공부': '#3b82f6',
-  '일': '#f59e0b',
-  '기타': '#8b5cf6'
-};
-
-export default function Calendar({ schedules, selectedDate, onDateSelect, onMonthChange }: CalendarProps) {
+export default function Calendar({ events, selectedDate, onDateSelect, onMonthChange }: CalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [pendingMonthChange, setPendingMonthChange] = useState<string | null>(null);
 
@@ -60,11 +43,11 @@ export default function Calendar({ schedules, selectedDate, onDateSelect, onMont
     return days;
   }, [currentDate]);
 
-  const getSchedulesForDate = (date: Date) => {
+  const getEventsForDate = (date: Date) => {
     const dateStr = formatDate(date);
-    return schedules.filter(schedule => {
-      const startDate = new Date(schedule.startDate);
-      const endDate = new Date(schedule.endDate);
+    return events.filter(event => {
+      const startDate = new Date(event.startTime);
+      const endDate = new Date(event.endTime);
       const currentDate = new Date(dateStr);
       return currentDate >= startDate && currentDate <= endDate;
     });
@@ -86,10 +69,6 @@ export default function Calendar({ schedules, selectedDate, onDateSelect, onMont
     return `${year}-${month}-${day}`;
   };
 
-  const getCategoryColor = (category: string) => {
-    return CATEGORY_COLORS[category] || '#6b7280';
-  };
-
   const createMonthChangeHandler = (direction: 'prev' | 'next') => () => {
     setCurrentDate(prev => {
       const newDate = new Date(prev.getFullYear(), prev.getMonth() + (direction === 'next' ? 1 : -1), 1);
@@ -107,20 +86,20 @@ export default function Calendar({ schedules, selectedDate, onDateSelect, onMont
     onDateSelect(formatDate(today));
   };
 
-  const renderScheduleIndicators = (daySchedules: Schedule[], dateStr: string) => {
-    const multiDaySchedules = daySchedules.filter(schedule => 
-      schedule.startDate !== schedule.endDate
+  const renderEventIndicators = (dayEvents: Event[], dateStr: string) => {
+    const multiDayEvents = dayEvents.filter(event => 
+      event.startTime.split('T')[0] !== event.endTime.split('T')[0]
     );
     
-    const singleDaySchedules = daySchedules.filter(schedule => 
-      schedule.startDate === schedule.endDate
+    const singleDayEvents = dayEvents.filter(event => 
+      event.startTime.split('T')[0] === event.endTime.split('T')[0]
     );
     
     return (
       <div className="schedule-indicators">
-        {multiDaySchedules.slice(0, 3).map((schedule, idx) => {
-          const startDate = new Date(schedule.startDate);
-          const endDate = new Date(schedule.endDate);
+        {multiDayEvents.slice(0, 3).map((event, idx) => {
+          const startDate = new Date(event.startTime);
+          const endDate = new Date(event.endTime);
           const currentDate = new Date(dateStr);
           
           const isStart = currentDate.getTime() === startDate.getTime();
@@ -132,25 +111,25 @@ export default function Calendar({ schedules, selectedDate, onDateSelect, onMont
               <div
                 key={`multi-${idx}`}
                 className={`schedule-highlight ${isStart ? 'start' : ''} ${isMiddle ? 'middle' : ''} ${isEnd ? 'end' : ''}`}
-                style={{ backgroundColor: getCategoryColor(schedule.category) }}
-                title={`${schedule.title} (${schedule.startDate} ~ ${schedule.endDate})`}
+                style={{ backgroundColor: event.category.color }}
+                title={`${event.title} (${event.startTime.split('T')[0]} ~ ${event.endTime.split('T')[0]})`}
               />
             );
           }
           return null;
         })}
         
-        {singleDaySchedules.slice(0, 2).map((schedule, idx) => (
+        {singleDayEvents.slice(0, 2).map((event, idx) => (
           <div
             key={`single-${idx}`}
             className="schedule-dot"
-            style={{ backgroundColor: getCategoryColor(schedule.category) }}
-            title={`${schedule.title} (${schedule.time})`}
+            style={{ backgroundColor: event.category.color }}
+            title={`${event.title} (${event.startTime.split('T')[1]})`}
           />
         ))}
         
-        {daySchedules.length > 5 && (
-          <span className="more-indicator">+{daySchedules.length - 5}</span>
+        {dayEvents.length > 5 && (
+          <span className="more-indicator">+{dayEvents.length - 5}</span>
         )}
       </div>
     );
@@ -184,7 +163,7 @@ export default function Calendar({ schedules, selectedDate, onDateSelect, onMont
         <div className="calendar-days">
           {calendarData.map((date, index) => {
             const dateStr = formatDate(date);
-            const daySchedules = getSchedulesForDate(date);
+            const dayEvents = getEventsForDate(date);
             const isSelected = selectedDate === dateStr;
             
             return (
@@ -194,7 +173,7 @@ export default function Calendar({ schedules, selectedDate, onDateSelect, onMont
                 onClick={() => onDateSelect(dateStr)}
               >
                 <span className="day-number">{date.getDate()}</span>
-                {daySchedules.length > 0 && renderScheduleIndicators(daySchedules, dateStr)}
+                {dayEvents.length > 0 && renderEventIndicators(dayEvents, dateStr)}
               </div>
             );
           })}

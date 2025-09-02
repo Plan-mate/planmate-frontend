@@ -8,7 +8,7 @@
   margin: 0 auto;
 }
 
-.logo {
+.header-container .logo {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -17,7 +17,7 @@
   color: #2563eb;
 }
 
-.kakaoBtn {
+.header-container .kakaoBtn {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -32,24 +32,24 @@
   cursor: pointer;
 }
 
-.user-section {
+.header-container .user-section {
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
-.profile-image {
+.header-container .profile-image {
   width: 36px;
   height: 36px;
   border-radius: 50%;
   object-fit: cover;
 }
 
-.nickname {
+.header-container .nickname {
   font-weight: 600;
 }
 
-.logoutBtn {
+.header-container .logoutBtn {
   margin-left: 8px;
   background: #ef4444;
   color: white;
@@ -60,7 +60,7 @@
   font-weight: 600;
 }
 
-.loading-spacer {
+.header-container .loading-spacer {
   height: 40px;
 }
 

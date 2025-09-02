@@ -6,39 +6,128 @@ import Header from "@/components/Header";
 import { getAccessToken } from "@/api/utils/tokenStorage";
 import Calendar from "@/components/Calendar";
 import ScheduleList from "@/components/ScheduleList";
-import ScheduleModal, { ScheduleFormData } from "@/components/ScheduleModal";
+import ScheduleModal from "@/components/ScheduleModal";
+import { Event, Category, CreateEventRequest } from "@/types/event";
 import "@/styles/planPage.css";
 
-interface Schedule {
-  id: number;
-  title: string;
-  content: string;
-  time: string;
-  category: string;
-  isCompleted: boolean;
-  startDate: string;
-  endDate: string;
-}
+const getMockCategories = (): Category[] => [
+  { id: 1, name: "운동", color: "#10b981" },
+  { id: 2, name: "공부", color: "#3b82f6" },
+  { id: 3, name: "일", color: "#f59e0b" },
+  { id: 4, name: "기타", color: "#8b5cf6" },
+];
 
-const getMockSchedules = (): Schedule[] => [
-  { id: 1, title: "여행", content: "부산 여행", startDate: "2025-09-01", endDate: "2025-09-03", time: "09:00", category: "기타", isCompleted: false },
-  { id: 2, title: "회의", content: "팀 워크샵", startDate: "2025-09-02", endDate: "2025-09-07", time: "10:00", category: "일", isCompleted: false },
-  { id: 3, title: "운동", content: "헬스장", startDate: "2025-09-10", endDate: "2025-09-12", time: "19:00", category: "운동", isCompleted: false },
-  { id: 4, title: "공부", content: "집중 학습 기간", startDate: "2025-09-15", endDate: "2025-09-17", time: "09:00", category: "공부", isCompleted: false },
-  { id: 5, title: "청소", content: "대청소", startDate: "2025-09-20", endDate: "2025-09-22", time: "10:00", category: "기타", isCompleted: false },
-  { id: 6, title: "프로젝트", content: "포트폴리오 작업", startDate: "2025-09-25", endDate: "2025-09-27", time: "14:00", category: "일", isCompleted: false },
-  { id: 7, title: "휴식", content: "휴가", startDate: "2025-09-29", endDate: "2025-09-30", time: "00:00", category: "기타", isCompleted: false },
-  { id: 8, title: "독서", content: "자기계발 책 읽기", startDate: "2025-09-01", endDate: "2025-09-01", time: "20:00", category: "공부", isCompleted: true },
-  { id: 9, title: "장보기", content: "식료품 구매", startDate: "2025-09-04", endDate: "2025-09-04", time: "19:00", category: "기타", isCompleted: false },
-  { id: 10, title: "영화보기", content: "새로 개봉한 영화", startDate: "2025-09-09", endDate: "2025-09-09", time: "19:30", category: "기타", isCompleted: false },
-  { id: 11, title: "친구 만나기", content: "카페에서 수다", startDate: "2025-09-13", endDate: "2025-09-13", time: "15:00", category: "기타", isCompleted: false },
-  { id: 12, title: "산책", content: "공원에서 산책", startDate: "2025-09-14", endDate: "2025-09-14", time: "16:00", category: "운동", isCompleted: false },
-  { id: 13, title: "게임", content: "친구들과 게임", startDate: "2025-09-19", endDate: "2025-09-19", time: "20:00", category: "기타", isCompleted: false },
-  { id: 14, title: "정리", content: "책상 정리하기", startDate: "2025-09-19", endDate: "2025-09-19", time: "11:00", category: "기타", isCompleted: false },
-  { id: 15, title: "학습", content: "온라인 강의 듣기", startDate: "2025-09-19", endDate: "2025-09-19", time: "14:00", category: "공부", isCompleted: false },
-  { id: 16, title: "쇼핑", content: "옷 쇼핑하기", startDate: "2025-09-24", endDate: "2025-09-24", time: "15:00", category: "기타", isCompleted: false },
-  { id: 17, title: "조깅", content: "아침 조깅", startDate: "2025-09-26", endDate: "2025-09-26", time: "07:00", category: "운동", isCompleted: false },
-  { id: 18, title: "독서", content: "소설 읽기", startDate: "2025-09-29", endDate: "2025-09-29", time: "21:00", category: "공부", isCompleted: false },
+const getMockEvents = (): Event[] => [
+  { 
+    id: 1, 
+    category: getMockCategories()[3], 
+    title: "여행", 
+    description: "부산 여행", 
+    startTime: "2025-09-01T09:00:00", 
+    endTime: "2025-09-03T18:00:00", 
+    isRecurring: false,
+    createdAt: "2024-01-01T00:00:00", 
+    updatedAt: "2024-01-01T00:00:00" 
+  },
+  { 
+    id: 2, 
+    category: getMockCategories()[2], 
+    title: "회의", 
+    description: "팀 워크샵", 
+    startTime: "2025-09-02T10:00:00", 
+    endTime: "2025-09-07T18:00:00", 
+    isRecurring: false,
+    createdAt: "2024-01-01T00:00:00", 
+    updatedAt: "2024-01-01T00:00:00" 
+  },
+  { 
+    id: 3, 
+    category: getMockCategories()[0], 
+    title: "운동", 
+    description: "헬스장", 
+    startTime: "2025-09-10T19:00:00", 
+    endTime: "2025-09-12T21:00:00", 
+    isRecurring: false,
+    createdAt: "2024-01-01T00:00:00", 
+    updatedAt: "2024-01-01T00:00:00" 
+  },
+  { 
+    id: 4, 
+    category: getMockCategories()[1], 
+    title: "공부", 
+    description: "집중 학습 기간", 
+    startTime: "2025-09-15T09:00:00", 
+    endTime: "2025-09-17T18:00:00", 
+    isRecurring: false,
+    createdAt: "2024-01-01T00:00:00", 
+    updatedAt: "2024-01-01T00:00:00" 
+  },
+  { 
+    id: 5, 
+    category: getMockCategories()[3], 
+    title: "청소", 
+    description: "대청소", 
+    startTime: "2025-09-20T10:00:00", 
+    endTime: "2025-09-22T16:00:00", 
+    isRecurring: false,
+    createdAt: "2024-01-01T00:00:00", 
+    updatedAt: "2024-01-01T00:00:00" 
+  },
+  { 
+    id: 6, 
+    category: getMockCategories()[2], 
+    title: "프로젝트", 
+    description: "포트폴리오 작업", 
+    startTime: "2025-09-25T14:00:00", 
+    endTime: "2025-09-27T18:00:00", 
+    isRecurring: false,
+    createdAt: "2024-01-01T00:00:00", 
+    updatedAt: "2024-01-01T00:00:00" 
+  },
+  { 
+    id: 7, 
+    category: getMockCategories()[3], 
+    title: "휴식", 
+    description: "휴가", 
+    startTime: "2025-09-29T00:00:00", 
+    endTime: "2025-09-30T23:59:59", 
+    isRecurring: false,
+    createdAt: "2024-01-01T00:00:00", 
+    updatedAt: "2024-01-01T00:00:00" 
+  },
+  { 
+    id: 8, 
+    category: getMockCategories()[1], 
+    title: "독서", 
+    description: "자기계발 책 읽기", 
+    startTime: "2025-09-01T20:00:00", 
+    endTime: "2025-09-01T22:00:00", 
+    isRecurring: false,
+    createdAt: "2024-01-01T00:00:00", 
+    updatedAt: "2024-01-01T00:00:00" 
+  },
+  { 
+    id: 9, 
+    category: getMockCategories()[3], 
+    title: "장보기", 
+    description: "식료품 구매", 
+    startTime: "2025-09-04T19:00:00", 
+    endTime: "2025-09-04T21:00:00", 
+    isRecurring: false,
+    createdAt: "2024-01-01T00:00:00", 
+    updatedAt: "2024-01-01T00:00:00" 
+  },
+  { 
+    id: 10, 
+    category: getMockCategories()[3], 
+    title: "영화보기", 
+    description: "새로 개봉한 영화", 
+    startTime: "2025-09-09T19:30:00", 
+    endTime: "2025-09-09T22:00:00", 
+    isRecurring: false,
+    createdAt: "2024-01-01T00:00:00", 
+    updatedAt: "2024-01-01T00:00:00" 
+  },
 ];
 
 const getCurrentMonthString = (): string => {
@@ -49,9 +138,10 @@ const getCurrentMonthString = (): string => {
 export default function PlanPage() {
   const router = useRouter();
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const [schedules, setSchedules] = useState<Schedule[]>([]);
+  const [events, setEvents] = useState<Event[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [viewMode, setViewMode] = useState<'list' | 'detail'>('list');
-  const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [currentMonth, setCurrentMonth] = useState<string>('');
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -67,19 +157,20 @@ export default function PlanPage() {
   }, []);
 
   useEffect(() => {
-    setSchedules(getMockSchedules());
+    setEvents(getMockEvents());
+    setCategories(getMockCategories());
   }, []);
 
   const resetView = () => {
     setSelectedDate(null);
     setViewMode('list');
-    setSelectedSchedule(null);
+    setSelectedEvent(null);
   };
 
   const handleDateSelect = (date: string) => {
     setSelectedDate(date);
     setViewMode('list');
-    setSelectedSchedule(null);
+    setSelectedEvent(null);
   };
 
   const handleMonthChange = (month: string) => {
@@ -87,17 +178,17 @@ export default function PlanPage() {
     resetView();
   };
 
-  const handleScheduleSelect = (schedule: Schedule) => {
-    setSelectedSchedule(schedule);
+  const handleEventSelect = (event: Event) => {
+    setSelectedEvent(event);
     setViewMode('detail');
   };
 
   const handleBackToList = () => {
     setViewMode('list');
-    setSelectedSchedule(null);
+    setSelectedEvent(null);
   };
 
-  const handleViewAllSchedules = () => {
+  const handleViewAllEvents = () => {
     if (selectedDate) {
       const selectedDateObj = new Date(selectedDate);
       const monthStr = `${selectedDateObj.getFullYear()}-${String(selectedDateObj.getMonth() + 1).padStart(2, '0')}`;
@@ -109,21 +200,24 @@ export default function PlanPage() {
   const handleOpenModal = () => setIsModalOpen(true);
   const handleCloseModal = () => setIsModalOpen(false);
 
-  const handleSubmitSchedule = (scheduleData: ScheduleFormData) => {
-    console.log('새 일정 데이터:', scheduleData);
-    
-    const newSchedule: Schedule = {
+  const handleSubmitEvent = (req: CreateEventRequest) => {
+    const selectedCategory = categories.find(cat => cat.id === req.categoryId);
+    if (!selectedCategory) return;
+
+    const newEvent: Event = {
       id: Date.now(),
-      title: scheduleData.title,
-      content: scheduleData.description,
-      time: scheduleData.start_time.split('T')[1] || '00:00',
-      category: scheduleData.category,
-      isCompleted: false,
-      startDate: scheduleData.start_time.split('T')[0],
-      endDate: scheduleData.end_time.split('T')[0],
+      category: selectedCategory,
+      title: req.title,
+      description: req.description,
+      startTime: req.startTime,
+      endTime: req.endTime,
+      isRecurring: req.isRecurring,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
-    
-    setSchedules(prev => [...prev, newSchedule]);
+
+    setEvents(prev => [...prev, newEvent]);
+    setIsModalOpen(false);
   };
 
   return (
@@ -133,7 +227,7 @@ export default function PlanPage() {
         <div className="plan-content">
           <div className="calendar-section">
             <Calendar 
-              schedules={schedules}
+              events={events}
               selectedDate={selectedDate}
               onDateSelect={handleDateSelect}
               onMonthChange={handleMonthChange}
@@ -141,14 +235,15 @@ export default function PlanPage() {
           </div>
           <div className="schedule-section">
             <ScheduleList
-              schedules={schedules}
+              events={events}
+              categories={categories}
               selectedDate={selectedDate}
               currentMonth={currentMonth}
               viewMode={viewMode}
-              selectedSchedule={selectedSchedule}
-              onScheduleSelect={handleScheduleSelect}
+              selectedEvent={selectedEvent}
+              onEventSelect={handleEventSelect}
               onBackToList={handleBackToList}
-              onViewAllSchedules={handleViewAllSchedules}
+              onViewAllEvents={handleViewAllEvents}
             />
           </div>
         </div>
@@ -161,7 +256,7 @@ export default function PlanPage() {
       <ScheduleModal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
-        onSubmit={handleSubmitSchedule}
+        onSubmit={handleSubmitEvent}
       />
     </>
   );

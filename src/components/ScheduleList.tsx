@@ -1,69 +1,51 @@
 "use client";
 
-interface Schedule {
-  id: number;
-  title: string;
-  content: string;
-  time: string;
-  category: string;
-  isCompleted: boolean;
-  startDate: string;
-  endDate: string;
-}
+import { Event, Category } from "@/types/event";
 
 interface ScheduleListProps {
-  schedules: Schedule[];
+  events: Event[];
+  categories: Category[];
   selectedDate: string | null;
   currentMonth: string;
   viewMode: 'list' | 'detail';
-  selectedSchedule: Schedule | null;
-  onScheduleSelect: (schedule: Schedule) => void;
+  selectedEvent: Event | null;
+  onEventSelect: (event: Event) => void;
   onBackToList: () => void;
-  onViewAllSchedules: () => void;
+  onViewAllEvents: () => void;
 }
 
-const CATEGORY_COLORS: { [key: string]: string } = {
-  '운동': '#10b981',
-  '공부': '#3b82f6',
-  '일': '#f59e0b',
-  '기타': '#8b5cf6'
-};
-
 export default function ScheduleList({
-  schedules,
+  events,
+  categories,
   selectedDate,
   currentMonth,
   viewMode,
-  selectedSchedule,
-  onScheduleSelect,
+  selectedEvent,
+  onEventSelect,
   onBackToList,
-  onViewAllSchedules
+  onViewAllEvents
 }: ScheduleListProps) {
-  const getSchedulesForDate = (date: string) => {
-    return schedules.filter(schedule => {
-      const startDate = new Date(schedule.startDate);
-      const endDate = new Date(schedule.endDate);
+  const getEventsForDate = (date: string) => {
+    return events.filter(event => {
+      const startDate = new Date(event.startTime);
+      const endDate = new Date(event.endTime);
       const currentDate = new Date(date);
       return currentDate >= startDate && currentDate <= endDate;
     });
   };
 
-  const getCurrentMonthSchedules = () => {
+  const getCurrentMonthEvents = () => {
     if (!currentMonth) return [];
     
     const [year, month] = currentMonth.split('-').map(Number);
     const startOfMonth = new Date(year, month - 1, 1);
     const endOfMonth = new Date(year, month, 0);
     
-    return schedules.filter(schedule => {
-      const scheduleStartDate = new Date(schedule.startDate);
-      const scheduleEndDate = new Date(schedule.endDate);
-      return (scheduleStartDate <= endOfMonth && scheduleEndDate >= startOfMonth);
+    return events.filter(event => {
+      const eventStartDate = new Date(event.startTime);
+      const eventEndDate = new Date(event.endTime);
+      return (eventStartDate <= endOfMonth && eventEndDate >= startOfMonth);
     });
-  };
-
-  const getCategoryColor = (category: string) => {
-    return CATEGORY_COLORS[category] || '#6b7280';
   };
 
   const formatDate = (dateStr: string) => {
@@ -79,14 +61,18 @@ export default function ScheduleList({
     return `${year}년 ${month}월`;
   };
 
-  if (viewMode === 'detail' && selectedSchedule) {
+  const formatTime = (dateTimeStr: string) => {
+    return dateTimeStr.split('T')[1].substring(0, 5);
+  };
+
+  if (viewMode === 'detail' && selectedEvent) {
     return (
       <div className="schedule-detail">
         <div className="detail-header">
-          <button onClick={onViewAllSchedules} className="back-btn">
+          <button onClick={onViewAllEvents} className="back-btn">
             ←
           </button>
-          <h3 className="detail-title">{formatDate(selectedSchedule.startDate)}</h3>
+          <h3 className="detail-title">{formatDate(selectedEvent.startTime)}</h3>
           <div className="detail-actions-top">
             <button className="action-icon-btn edit-icon-btn" title="수정">
               ✏
@@ -100,29 +86,31 @@ export default function ScheduleList({
         <div className="detail-content">
           <div className="detail-section">
             <label className="detail-label">제목</label>
-            <div className="detail-value">{selectedSchedule.title}</div>
+            <div className="detail-value">{selectedEvent.title}</div>
           </div>
           
           <div className="detail-section">
             <label className="detail-label">내용</label>
-            <div className="detail-value">{selectedSchedule.content}</div>
+            <div className="detail-value">{selectedEvent.description}</div>
           </div>
           
           <div className="detail-row">
             <div className="detail-section">
               <label className="detail-label">시작일</label>
-              <div className="detail-value">{formatDate(selectedSchedule.startDate)}</div>
+              <div className="detail-value">{formatDate(selectedEvent.startTime)}</div>
             </div>
             
             <div className="detail-section">
               <label className="detail-label">종료일</label>
-              <div className="detail-value">{formatDate(selectedSchedule.endDate)}</div>
+              <div className="detail-value">{formatDate(selectedEvent.endTime)}</div>
             </div>
           </div>
           
           <div className="detail-section">
             <label className="detail-label">시간</label>
-            <div className="detail-value">{selectedSchedule.time}</div>
+            <div className="detail-value">
+              {formatTime(selectedEvent.startTime)} - {formatTime(selectedEvent.endTime)}
+            </div>
           </div>
           
           <div className="detail-section">
@@ -130,18 +118,18 @@ export default function ScheduleList({
             <div className="detail-value">
               <span 
                 className="category-tag"
-                style={{ backgroundColor: getCategoryColor(selectedSchedule.category) }}
+                style={{ backgroundColor: selectedEvent.category.color }}
               >
-                {selectedSchedule.category}
+                {selectedEvent.category.name}
               </span>
             </div>
           </div>
           
           <div className="detail-section">
-            <label className="detail-label">상태</label>
+            <label className="detail-label">반복</label>
             <div className="detail-value">
-              <span className={`status-badge ${selectedSchedule.isCompleted ? 'completed' : 'pending'}`}>
-                {selectedSchedule.isCompleted ? '완료' : '진행중'}
+              <span className={`status-badge ${selectedEvent.isRecurring ? 'completed' : 'pending'}`}>
+                {selectedEvent.isRecurring ? '반복' : '일회성'}
               </span>
             </div>
           </div>
@@ -150,9 +138,9 @@ export default function ScheduleList({
     );
   }
 
-  const filteredSchedules = selectedDate 
-    ? getSchedulesForDate(selectedDate)
-    : getCurrentMonthSchedules();
+  const filteredEvents = selectedDate 
+    ? getEventsForDate(selectedDate)
+    : getCurrentMonthEvents();
 
   const getEmptyStateMessage = () => {
     if (selectedDate) {
@@ -169,14 +157,14 @@ export default function ScheduleList({
         </h3>
         <div className="header-actions">
           {selectedDate && (
-            <button onClick={onViewAllSchedules} className="back-btn">
+            <button onClick={onViewAllEvents} className="back-btn">
               ←
             </button>
           )}
         </div>
       </div>
       
-      {filteredSchedules.length === 0 ? (
+      {filteredEvents.length === 0 ? (
         <div className="empty-state">
           <div className="empty-icon">📅</div>
           <p className="empty-text">{getEmptyStateMessage()}</p>
@@ -184,29 +172,31 @@ export default function ScheduleList({
         </div>
       ) : (
         <div className="schedule-items">
-          {filteredSchedules.map(schedule => (
+          {filteredEvents.map(event => (
             <div
-              key={schedule.id}
-              className={`schedule-item ${schedule.isCompleted ? 'completed' : ''}`}
-              onClick={() => onScheduleSelect(schedule)}
+              key={event.id}
+              className="schedule-item"
+              onClick={() => onEventSelect(event)}
             >
               <div className="schedule-main">
                 <div className="schedule-header">
-                  <h4 className="schedule-title">{schedule.title}</h4>
+                  <h4 className="schedule-title">{event.title}</h4>
                   <span 
                     className="category-badge"
-                    style={{ backgroundColor: getCategoryColor(schedule.category) }}
+                    style={{ backgroundColor: event.category.color }}
                   >
-                    {schedule.category}
+                    {event.category.name}
                   </span>
                 </div>
                 
-                <p className="schedule-content">{schedule.content}</p>
+                <p className="schedule-content">{event.description}</p>
                 
                 <div className="schedule-meta">
-                  <span className="schedule-time">{schedule.time}</span>
-                  {schedule.isCompleted && (
-                    <span className="completion-badge">완료</span>
+                  <span className="schedule-time">
+                    {formatTime(event.startTime)} - {formatTime(event.endTime)}
+                  </span>
+                  {event.isRecurring && (
+                    <span className="completion-badge">반복</span>
                   )}
                 </div>
               </div>
