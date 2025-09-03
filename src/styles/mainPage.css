@@ -5,6 +5,7 @@ body {
   -moz-user-select: none;
   -ms-user-select: none;
   user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .main-vertical {
@@ -13,7 +14,7 @@ body {
   align-items: center;
   max-width: 1100px;
   margin: 0 auto;
-  padding: 40px 0 0 0;
+  padding: 40px 12px 0 12px;
   min-height: 60vh;
 }
 
@@ -21,14 +22,14 @@ body {
 .main-text-wide {
   width: 100%;
   max-width: 900px;
-  padding: 36px 0 32px 0;
+  padding: 28px 0 24px 0;
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
 .introTitle {
-  font-size: 2.7rem;
+  font-size: clamp(1.6rem, 4.5vw, 2.7rem);
   font-weight: 900;
   background: linear-gradient(90deg, #2563eb 30%, #38bdf8 100%);
   -webkit-background-clip: text;
@@ -41,7 +42,7 @@ body {
 }
 
 .introDesc {
-  font-size: 1.32rem;
+  font-size: clamp(1rem, 3.2vw, 1.32rem);
   color: #2563eb;
   background: linear-gradient(120deg, #f1f5fd 60%, #e0e7ff 100%);
   border-radius: 18px;
@@ -65,7 +66,7 @@ body {
   width: 100%;
   max-width: 900px;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, minmax(0,1fr));
   gap: 28px;
   margin-top: 8px;
 }
@@ -90,7 +91,7 @@ body {
   border: 1.5px solid #2563eb55;
 }
 .cardIcon {
-  font-size: 2.5rem;
+  font-size: clamp(1.6rem, 6vw, 2.5rem);
   margin-bottom: 14px;
   background: linear-gradient(120deg, #2563eb 60%, #38bdf8 100%);
   color: #fff;
@@ -103,14 +104,14 @@ body {
   box-shadow: 0 2px 8px #2563eb22;
 }
 .cardTitle {
-  font-size: 1.18rem;
+  font-size: clamp(1rem, 3.3vw, 1.18rem);
   font-weight: 800;
   color: #2563eb;
   margin-bottom: 6px;
   letter-spacing: -0.5px;
 }
 .cardDesc {
-  font-size: 1.05rem;
+  font-size: clamp(0.95rem, 3vw, 1.05rem);
   color: #334155;
   text-align: center;
 }
@@ -119,7 +120,7 @@ body {
   margin-top: 10%;
   text-align: center;
   color: #888;
-  font-size: 0.98rem;
+  font-size: 0.95rem;
   letter-spacing: 0.2px;
   border-top: 1px solid #e5e7eb;
   padding-top: 18px;
@@ -169,19 +170,19 @@ body {
 }
 @media (max-width: 900px) {
   .main-cards-horizontal {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 1fr;
     gap: 18px;
-    padding: 0 10px;
+    padding: 0 8px;
   }
   .main-text-wide {
-    padding: 24px 8px 20px 8px;
+    padding: 20px 8px 16px 8px;
   }
   .introTitle {
-    font-size: 2rem;
+    font-size: clamp(1.4rem, 5vw, 2rem);
     text-align: center;
   }
   .introDesc {
-    font-size: 1.05rem;
+    font-size: 1rem;
     padding: 16px 10px;
     margin-bottom: 24px;
   }
@@ -208,11 +209,11 @@ body {
     padding: 16px 2px 12px 2px;
   }
   .introTitle {
-    font-size: 1.3rem;
+    font-size: clamp(1.1rem, 5.2vw, 1.3rem);
     text-align: center;
   }
   .introDesc {
-    font-size: 0.98rem;
+    font-size: 0.95rem;
     padding: 10px 4px;
     margin-bottom: 16px;
   }

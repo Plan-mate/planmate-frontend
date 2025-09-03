@@ -267,7 +267,7 @@ export default function ScheduleModal({ isOpen, onClose, onSubmit, categories }:
             </div>
 
             {/* 날짜 (하루종일 포함) */}
-            <div className="row">
+            <div className={`row date-row ${isAllDay ? 'is-all-day' : 'is-range'}`}>
               <div className="row-label">날짜
                 <button
                   type="button"
@@ -282,7 +282,7 @@ export default function ScheduleModal({ isOpen, onClose, onSubmit, categories }:
                   </svg>
                 </button>
               </div>
-              <div className="row-field field-inline nowrap date-inline">
+              <div className={`row-field field-inline nowrap date-inline ${isAllDay ? 'all-day' : 'time-range'}`}>
                 {!isAllDay ? (
                   <div className="inline-time">
                     <input
@@ -332,7 +332,7 @@ export default function ScheduleModal({ isOpen, onClose, onSubmit, categories }:
             </div>
 
             {/* 반복 */}
-            <div className="row">
+            <div className="row recur-row">
               <div className="row-label">반복
                 <button
                   type="button"
@@ -352,11 +352,6 @@ export default function ScheduleModal({ isOpen, onClose, onSubmit, categories }:
               <div className="row-field">
                 {formData.isRecurring && (
                   <div className="field-inline nowrap recur-inline">
-                    <div className="segmented recur-tabs">
-                      <button type="button" className={`seg-btn ${recurrenceType === 'DAILY' ? 'active' : ''}`} onClick={() => setRecurrenceType('DAILY')}>매일</button>
-                      <button type="button" className={`seg-btn ${recurrenceType === 'WEEKLY' ? 'active' : ''}`} onClick={() => setRecurrenceType('WEEKLY')}>매주</button>
-                      <button type="button" className={`seg-btn ${recurrenceType === 'MONTHLY' ? 'active' : ''}`} onClick={() => setRecurrenceType('MONTHLY')}>매월</button>
-                    </div>
                     <div className="end-date-row inline">
                       <span className="end-date-label">종료일</span>
                       <input
@@ -373,6 +368,11 @@ export default function ScheduleModal({ isOpen, onClose, onSubmit, categories }:
                         }}
                         className="toss-input small pm-input"
                       />
+                    </div>
+                    <div className="segmented recur-tabs">
+                      <button type="button" className={`seg-btn ${recurrenceType === 'DAILY' ? 'active' : ''}`} onClick={() => setRecurrenceType('DAILY')}>매일</button>
+                      <button type="button" className={`seg-btn ${recurrenceType === 'WEEKLY' ? 'active' : ''}`} onClick={() => setRecurrenceType('WEEKLY')}>매주</button>
+                      <button type="button" className={`seg-btn ${recurrenceType === 'MONTHLY' ? 'active' : ''}`} onClick={() => setRecurrenceType('MONTHLY')}>매월</button>
                     </div>
                   </div>
                 )}

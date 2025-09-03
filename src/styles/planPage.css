@@ -2,7 +2,7 @@
 .plan-container {
   max-width: 900px;
   margin: 0 auto;
-  padding: 32px 0 24px 0;
+  padding: 32px 12px 24px 12px;
 }
 
 .plan-content {
@@ -630,10 +630,10 @@
 
 .floating-add-btn {
   position: fixed;
-  bottom: 30px;
-  right: 30px;
-  width: 60px;
-  height: 60px;
+  bottom: max(20px, env(safe-area-inset-bottom));
+  right: max(16px, env(safe-area-inset-right));
+  width: 56px;
+  height: 56px;
   background: #10b981;
   color: white;
   border: none;
@@ -690,12 +690,12 @@
 
 @media (max-width: 768px) {
   .plan-container {
-    padding: 16px;
+    padding: 12px;
   }
   
   .calendar-section,
   .schedule-section {
-    padding: 20px;
+    padding: 16px;
   }
   
   .detail-row {
@@ -720,4 +720,18 @@
   .delete-icon-btn {
     font-size: 1.125rem;
   }
+
+  .calendar-title { font-size: 1.25rem; }
+  .weekday { padding: 8px 4px; font-size: 0.8rem; }
+  .day-number { font-size: 0.8rem; }
+}
+
+@media (max-width: 420px) {
+  .plan-container { padding: 10px 8px; }
+  .calendar-section, .schedule-section { padding: 12px; }
+  .calendar-nav-btn { padding: 6px; font-size: 20px; }
+  .today-btn { padding: 6px 10px; font-size: 0.9rem; }
+  .list-title { font-size: 1.05rem; }
+  .schedule-title { font-size: 0.95rem; }
+  .schedule-item { padding: 12px; }
 }
