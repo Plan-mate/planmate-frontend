@@ -1,15 +1,17 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Category, CreateEventRequest } from "@/types/event";
+import { Category, CreateEventRequest, Event } from "@/types/event";
 import { createEvent, getCategory } from "@/api/services/plan";
 import "@/styles/scheduleModal.css";
 
 interface ScheduleModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (eventData: CreateEventRequest) => void;
+  onSubmit: (createdEvents: Event[]) => void;
   categories?: Category[];
+  editEvent?: Event;
+  isEditMode?: boolean;
 }
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
@@ -36,7 +38,6 @@ const threeWeeksLaterStr = (() => {
   return formatDate(d);
 })();
 
-// 10분 단위 반올림 보정 (가장 가까운 10분)
 const roundToTenMinutes = (value: string): string => {
   if (!value) return value;
   const [datePart, timePart] = value.split('T');
@@ -57,6 +58,63 @@ const roundToTenMinutes = (value: string): string => {
   return `${datePart}T${hhStr}:${mmStr}`;
 };
 
+const calculateDurationInDays = (startTime: string, endTime: string): number => {
+  if (!startTime || !endTime) return 0;
+  const start = new Date(startTime);
+  const end = new Date(endTime);
+  
+  const startDate = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+  const endDate = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+  
+  const diffTime = endDate.getTime() - startDate.getTime();
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  
+  return diffDays + 1;
+};
+
+const getValidRecurrenceTypes = (durationDays: number): ('DAILY' | 'WEEKLY' | 'MONTHLY')[] => {
+  if (durationDays <= 1) {
+    return ['DAILY', 'WEEKLY', 'MONTHLY']; // 1일 이하는 모든 반복 가능
+  } else if (durationDays <= 7) {
+    return ['WEEKLY', 'MONTHLY']; // 2-7일은 매일 제외
+  } else {
+    return ['MONTHLY']; // 8일 이상은 매월만 가능
+  }
+};
+
+const validateRecurrenceSettings = (
+  durationDays: number,
+  recurrenceType: 'DAILY' | 'WEEKLY' | 'MONTHLY',
+  selectedDays: number[],
+  selectedDates: number[]
+): { isValid: boolean; errorMessage?: string } => {
+  const validTypes = getValidRecurrenceTypes(durationDays);
+  
+  if (!validTypes.includes(recurrenceType)) {
+    if (durationDays > 7) {
+      return { isValid: false, errorMessage: `${durationDays}일 기간은 매월 반복만 가능합니다.` };
+    } else if (durationDays > 1) {
+      return { isValid: false, errorMessage: `${durationDays}일 기간은 매일 반복이 불가능합니다. 매주 또는 매월을 선택해주세요.` };
+    }
+  }
+
+  if (recurrenceType === 'WEEKLY') {
+    const maxWeeklySelections = durationDays === 1 ? 7 : Math.floor(7 / durationDays);
+    if (selectedDays.length > maxWeeklySelections) {
+      return { isValid: false, errorMessage: `매주 반복 시 선택 가능한 요일은 최대 ${maxWeeklySelections}개입니다.` };
+    }
+  }
+
+  if (recurrenceType === 'MONTHLY') {
+    const maxMonthlySelections = durationDays === 1 ? 30 : Math.floor(30 / durationDays);
+    if (selectedDates.length > maxMonthlySelections) {
+      return { isValid: false, errorMessage: `매월 반복 시 선택 가능한 날짜는 최대 ${maxMonthlySelections}개입니다.` };
+    }
+  }
+
+  return { isValid: true };
+};
+
 const INITIAL_FORM_DATA: CreateEventRequest = {
   title: "",
   description: "",
@@ -66,7 +124,7 @@ const INITIAL_FORM_DATA: CreateEventRequest = {
   isRecurring: false,
 };
 
-export default function ScheduleModal({ isOpen, onClose, onSubmit, categories }: ScheduleModalProps) {
+export default function ScheduleModal({ isOpen, onClose, onSubmit, categories, editEvent, isEditMode = false }: ScheduleModalProps) {
   const [formData, setFormData] = useState<CreateEventRequest>(INITIAL_FORM_DATA);
   const [recurrenceType, setRecurrenceType] = useState<'DAILY' | 'WEEKLY' | 'MONTHLY'>('DAILY');
   const [selectedDays, setSelectedDays] = useState<number[]>([]);
@@ -76,6 +134,7 @@ export default function ScheduleModal({ isOpen, onClose, onSubmit, categories }:
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [categoriesLocal, setCategoriesLocal] = useState<Category[]>(categories ?? []);
   const [isLoadingCategories, setIsLoadingCategories] = useState(false);
+  const [validationError, setValidationError] = useState<string>("");
 
   const isValid = useMemo(() => {
     if (!formData.title || !formData.title.trim()) return false;
@@ -86,7 +145,16 @@ export default function ScheduleModal({ isOpen, onClose, onSubmit, categories }:
       if (!recurrenceEndDate) return false;
       if (recurrenceType === 'WEEKLY' && selectedDays.length === 0) return false;
       if (recurrenceType === 'MONTHLY' && selectedDates.length === 0) return false;
+      
+      // 반복 설정 유효성 검사
+      const durationDays = calculateDurationInDays(formData.startTime, formData.endTime);
+      const validation = validateRecurrenceSettings(durationDays, recurrenceType, selectedDays, selectedDates);
+      if (!validation.isValid) {
+        setValidationError(validation.errorMessage || "");
+        return false;
+      }
     }
+    setValidationError("");
     return true;
   }, [formData.title, formData.categoryId, formData.startTime, formData.endTime, formData.isRecurring, recurrenceEndDate, recurrenceType, selectedDays, selectedDates]);
 
@@ -109,16 +177,79 @@ export default function ScheduleModal({ isOpen, onClose, onSubmit, categories }:
     return () => { mounted = false; };
   }, [isOpen, categories]);
 
+  useEffect(() => {
+    if (isOpen && isEditMode && editEvent) {
+      setFormData({
+        title: editEvent.title,
+        description: editEvent.description,
+        categoryId: editEvent.category.id,
+        startTime: editEvent.startTime,
+        endTime: editEvent.endTime,
+        isRecurring: editEvent.isRecurring,
+      });
+      
+      const startTime = editEvent.startTime.split('T')[1];
+      const endTime = editEvent.endTime.split('T')[1];
+      setIsAllDay(startTime === '00:00' && endTime === '23:59');
+      
+      if (editEvent.isRecurring && editEvent.recurrenceRule) {
+        const rule = editEvent.recurrenceRule;
+        setRecurrenceType(rule.frequency);
+        
+        if (rule.endDate) {
+          const endDate = new Date(rule.endDate);
+          setRecurrenceEndDate(formatDate(endDate));
+        } else {
+          setRecurrenceEndDate("");
+        }
+        
+        if (rule.frequency === 'WEEKLY' && rule.daysOfWeek) {
+          setSelectedDays(rule.daysOfWeek.map(day => parseInt(day)));
+        } else {
+          setSelectedDays([]);
+        }
+        
+        if (rule.frequency === 'MONTHLY' && rule.daysOfMonth) {
+          setSelectedDates(rule.daysOfMonth);
+        } else {
+          setSelectedDates([]);
+        }
+      } else {
+        setRecurrenceType('DAILY');
+        setSelectedDays([]);
+        setSelectedDates([]);
+        setRecurrenceEndDate("");
+      }
+    } else if (isOpen && !isEditMode) {
+      setFormData(INITIAL_FORM_DATA);
+      setIsAllDay(true);
+      setRecurrenceType('DAILY');
+      setSelectedDays([]);
+      setSelectedDates([]);
+      setRecurrenceEndDate("");
+    }
+  }, [isOpen, isEditMode, editEvent]);
+
   const handleInputChange = (field: keyof CreateEventRequest, value: string | boolean | number) => {
     setFormData(prev => ({ ...prev, [field]: value } as CreateEventRequest));
   };
 
   const handleDayToggle = (dayIndex: number) => {
-    setSelectedDays(prev => prev.includes(dayIndex) ? prev.filter(d => d !== dayIndex) : [...prev, dayIndex]);
+    const durationDays = calculateDurationInDays(formData.startTime, formData.endTime);
+    const maxSelections = durationDays === 1 ? 7 : Math.floor(7 / durationDays);
+    setSelectedDays(prev => {
+      const newDays = prev.includes(dayIndex) ? prev.filter(d => d !== dayIndex) : [...prev, dayIndex];
+      return newDays.slice(0, maxSelections);
+    });
   };
 
   const handleDateToggle = (date: number) => {
-    setSelectedDates(prev => prev.includes(date) ? prev.filter(d => d !== date) : [...prev, date]);
+    const durationDays = calculateDurationInDays(formData.startTime, formData.endTime);
+    const maxSelections = durationDays === 1 ? 30 : Math.floor(30 / durationDays);
+    setSelectedDates(prev => {
+      const newDates = prev.includes(date) ? prev.filter(d => d !== date) : [...prev, date];
+      return newDates.slice(0, maxSelections);
+    });
   };
 
   const handleAllDayToggle = (checked: boolean) => {
@@ -159,7 +290,7 @@ export default function ScheduleModal({ isOpen, onClose, onSubmit, categories }:
         interval: 1,
         daysOfWeek: recurrenceType === 'WEEKLY' ? selectedDays : undefined,
         daysOfMonth: recurrenceType === 'MONTHLY' ? selectedDates : undefined,
-        endDate: recurrenceEndDate || undefined,
+        endDate: recurrenceEndDate ? `${recurrenceEndDate}T23:59:59` : undefined,
       } : undefined,
     };
     return req;
@@ -173,14 +304,28 @@ export default function ScheduleModal({ isOpen, onClose, onSubmit, categories }:
 
     try {
       const req = buildRequest();
-      await createEvent(req);
-      onSubmit(req);
+      const created = await createEvent(req);
+      onSubmit(created as Event[]);
       handleClose();
     } catch (err) {
       console.error(err);
       alert('일정 생성에 실패했습니다. 잠시 후 다시 시도해주세요.');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleRecurrenceTypeChange = (newType: 'DAILY' | 'WEEKLY' | 'MONTHLY') => {
+    const durationDays = calculateDurationInDays(formData.startTime, formData.endTime);
+    const validTypes = getValidRecurrenceTypes(durationDays);
+    
+    if (validTypes.includes(newType)) {
+      setRecurrenceType(newType);
+      if (newType === 'WEEKLY') {
+        setSelectedDates([]);
+      } else if (newType === 'MONTHLY') {
+        setSelectedDays([]);
+      }
     }
   };
 
@@ -191,12 +336,16 @@ export default function ScheduleModal({ isOpen, onClose, onSubmit, categories }:
     setSelectedDates([]);
     setRecurrenceEndDate("");
     setIsAllDay(true);
+    setValidationError("");
+    setIsSubmitting(false);
     onClose();
   };
 
   if (!isOpen) return null;
 
   const startDateOnly = formData.startTime ? formData.startTime.slice(0,10) : todayStr;
+  const durationDays = calculateDurationInDays(formData.startTime, formData.endTime);
+  const validRecurrenceTypes = getValidRecurrenceTypes(durationDays);
 
   return (
     <div className="modal-overlay" onClick={handleClose}>
@@ -205,12 +354,11 @@ export default function ScheduleModal({ isOpen, onClose, onSubmit, categories }:
           <button className="close-btn toss-close" onClick={handleClose}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
           </button>
-          <h2 className="modal-title">새 일정</h2>
+          <h2 className="modal-title">{isEditMode ? '일정 수정' : '새 일정'}</h2>
         </div>
 
         <form onSubmit={handleSubmit} className="schedule-form toss-form compact pm-form">
           <div className="form-section">
-            {/* 제목 */}
             <div className="row">
               <div className="row-label">제목</div>
               <div className="row-field">
@@ -227,7 +375,6 @@ export default function ScheduleModal({ isOpen, onClose, onSubmit, categories }:
               </div>
             </div>
 
-            {/* 메모 */}
             <div className="row">
               <div className="row-label">메모</div>
               <div className="row-field">
@@ -242,7 +389,6 @@ export default function ScheduleModal({ isOpen, onClose, onSubmit, categories }:
               </div>
             </div>
 
-            {/* 카테고리 */}
             <div className="row">
               <div className="row-label">카테고리</div>
               <div className="row-field">
@@ -266,7 +412,6 @@ export default function ScheduleModal({ isOpen, onClose, onSubmit, categories }:
               </div>
             </div>
 
-            {/* 날짜 (하루종일 포함) */}
             <div className={`row date-row ${isAllDay ? 'is-all-day' : 'is-range'}`}>
               <div className="row-label">날짜
                 <button
@@ -331,7 +476,6 @@ export default function ScheduleModal({ isOpen, onClose, onSubmit, categories }:
               </div>
             </div>
 
-            {/* 반복 */}
             <div className="row recur-row">
               <div className="row-label">반복
                 <button
@@ -370,31 +514,109 @@ export default function ScheduleModal({ isOpen, onClose, onSubmit, categories }:
                       />
                     </div>
                     <div className="segmented recur-tabs">
-                      <button type="button" className={`seg-btn ${recurrenceType === 'DAILY' ? 'active' : ''}`} onClick={() => setRecurrenceType('DAILY')}>매일</button>
-                      <button type="button" className={`seg-btn ${recurrenceType === 'WEEKLY' ? 'active' : ''}`} onClick={() => setRecurrenceType('WEEKLY')}>매주</button>
-                      <button type="button" className={`seg-btn ${recurrenceType === 'MONTHLY' ? 'active' : ''}`} onClick={() => setRecurrenceType('MONTHLY')}>매월</button>
+                      <button 
+                        type="button" 
+                        className={`seg-btn ${recurrenceType === 'DAILY' ? 'active' : ''} ${!validRecurrenceTypes.includes('DAILY') ? 'disabled' : ''}`} 
+                        onClick={() => handleRecurrenceTypeChange('DAILY')}
+                        disabled={!validRecurrenceTypes.includes('DAILY')}
+                        title={!validRecurrenceTypes.includes('DAILY') ? `${durationDays}일 기간은 매일 반복이 불가능합니다` : ''}
+                      >
+                        매일
+                      </button>
+                      <button 
+                        type="button" 
+                        className={`seg-btn ${recurrenceType === 'WEEKLY' ? 'active' : ''} ${!validRecurrenceTypes.includes('WEEKLY') ? 'disabled' : ''}`} 
+                        onClick={() => handleRecurrenceTypeChange('WEEKLY')}
+                        disabled={!validRecurrenceTypes.includes('WEEKLY')}
+                        title={!validRecurrenceTypes.includes('WEEKLY') ? `${durationDays}일 기간은 매주 반복이 불가능합니다` : ''}
+                      >
+                        매주
+                      </button>
+                      <button 
+                        type="button" 
+                        className={`seg-btn ${recurrenceType === 'MONTHLY' ? 'active' : ''} ${!validRecurrenceTypes.includes('MONTHLY') ? 'disabled' : ''}`} 
+                        onClick={() => handleRecurrenceTypeChange('MONTHLY')}
+                        disabled={!validRecurrenceTypes.includes('MONTHLY')}
+                        title={!validRecurrenceTypes.includes('MONTHLY') ? `${durationDays}일 기간은 매월 반복이 불가능합니다` : ''}
+                      >
+                        매월
+                      </button>
                     </div>
                   </div>
                 )}
               </div>
             </div>
 
-            {/* 반복 상세 옵션: 레이아웃 점프 방지 grid 전환 */}
             <div className={`recur-container ${formData.isRecurring ? 'open' : ''}`} aria-hidden={!formData.isRecurring}>
               <div className="recur-inner">
+                {validationError && (
+                  <div className="validation-error" style={{ color: '#ff4444', fontSize: '14px', marginBottom: '12px', textAlign: 'center' }}>
+                    {validationError}
+                  </div>
+                )}
                 <div className="recurrence-block recur-panels center">
                   {recurrenceType === 'WEEKLY' && (
-                    <div className="weekday-picker">
-                      {WEEKDAYS.map((day, index) => (
-                        <button key={day} type="button" className={`day-btn pm-day-btn small ${selectedDays.includes(index) ? 'selected' : ''}`} onClick={() => handleDayToggle(index)}>{day}</button>
-                      ))}
+                    <div>
+                      <div className="selection-limit-info" style={{ fontSize: '12px', color: '#666', marginBottom: '8px', textAlign: 'center' }}>
+                        {(() => {
+                          const durationDays = calculateDurationInDays(formData.startTime, formData.endTime);
+                          const maxSelections = durationDays === 1 ? 7 : Math.floor(7 / durationDays);
+                          return `최대 ${maxSelections}개 요일 선택 가능`;
+                        })()}
+                      </div>
+                      <div className="weekday-picker">
+                        {WEEKDAYS.map((day, index) => {
+                          const durationDays = calculateDurationInDays(formData.startTime, formData.endTime);
+                          const maxSelections = durationDays === 1 ? 7 : Math.floor(7 / durationDays);
+                          const isDisabled = selectedDays.length >= maxSelections && !selectedDays.includes(index);
+                          const tooltipText = isDisabled ? `최대 ${maxSelections}개까지만 선택 가능합니다` : '';
+                          
+                          return (
+                            <button 
+                              key={day} 
+                              type="button" 
+                              className={`day-btn pm-day-btn small ${selectedDays.includes(index) ? 'selected' : ''} ${isDisabled ? 'disabled' : ''}`} 
+                              onClick={() => handleDayToggle(index)}
+                              disabled={isDisabled}
+                              title={tooltipText}
+                            >
+                              {day}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
                   )}
                   {recurrenceType === 'MONTHLY' && (
-                    <div className="date-selector pm-date-selector">
-                      {MONTH_DATES.map(date => (
-                        <button key={date} type="button" className={`date-btn pm-date-btn small ${selectedDates.includes(date) ? 'selected' : ''}`} onClick={() => handleDateToggle(date)}>{date}</button>
-                      ))}
+                    <div>
+                      <div className="selection-limit-info" style={{ fontSize: '12px', color: '#666', marginBottom: '8px', textAlign: 'center' }}>
+                        {(() => {
+                          const durationDays = calculateDurationInDays(formData.startTime, formData.endTime);
+                          const maxSelections = durationDays === 1 ? 30 : Math.floor(30 / durationDays);
+                          return `최대 ${maxSelections}개 날짜 선택 가능`;
+                        })()}
+                      </div>
+                      <div className="date-selector pm-date-selector">
+                        {MONTH_DATES.map(date => {
+                          const durationDays = calculateDurationInDays(formData.startTime, formData.endTime);
+                          const maxSelections = durationDays === 1 ? 30 : Math.floor(30 / durationDays);
+                          const isDisabled = selectedDates.length >= maxSelections && !selectedDates.includes(date);
+                          const tooltipText = isDisabled ? `최대 ${maxSelections}개까지만 선택 가능합니다` : '';
+                          
+                          return (
+                            <button 
+                              key={date} 
+                              type="button" 
+                              className={`date-btn pm-date-btn small ${selectedDates.includes(date) ? 'selected' : ''} ${isDisabled ? 'disabled' : ''}`} 
+                              onClick={() => handleDateToggle(date)}
+                              disabled={isDisabled}
+                              title={tooltipText}
+                            >
+                              {date}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
                   )}
                 </div>

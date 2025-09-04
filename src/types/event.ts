@@ -5,7 +5,7 @@ export interface Category {
 }
 
 export interface Event {
-  id: number;
+  id: number | null;
   category: Category;
   title: string;
   description: string;
@@ -13,21 +13,17 @@ export interface Event {
   endTime: string;
   isRecurring: boolean;
   originalEventId?: number | null;
-  recurrenceRule?: RecurrenceRule;
+  recurrenceRule?: RecurrenceRule | null;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface RecurrenceRule {
-  id: number;
-  eventId: number;
+  daysOfMonth: number[] | null;
+  daysOfWeek: string[] | null;
   frequency: 'DAILY' | 'WEEKLY' | 'MONTHLY';
   interval: number;
-  daysOfWeek?: string; // JSON string: "[1,2,3]" (월,화,수)
-  daysOfMonth?: string; // JSON string: "[1,15,30]"
-  endDate?: string;
-  createdAt: string;
-  updatedAt: string;
+  endDate: string | null;
 }
 
 export interface CreateEventRequest {

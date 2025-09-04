@@ -7,128 +7,9 @@ import { getAccessToken } from "@/api/utils/tokenStorage";
 import Calendar from "@/components/Calendar";
 import ScheduleList from "@/components/ScheduleList";
 import ScheduleModal from "@/components/ScheduleModal";
-import { Event, Category, CreateEventRequest } from "@/types/event";
+import { Event, Category } from "@/types/event";
+import { getEvents, getCategory } from "@/api/services/plan";
 import "@/styles/planPage.css";
-
-const getMockCategories = (): Category[] => [
-  { id: 1, name: "운동", color: "#10b981" },
-  { id: 2, name: "공부", color: "#3b82f6" },
-  { id: 3, name: "일", color: "#f59e0b" },
-  { id: 4, name: "기타", color: "#8b5cf6" },
-];
-
-const getMockEvents = (): Event[] => [
-  { 
-    id: 1, 
-    category: getMockCategories()[3], 
-    title: "여행", 
-    description: "부산 여행", 
-    startTime: "2025-09-01T09:00:00", 
-    endTime: "2025-09-03T18:00:00", 
-    isRecurring: false,
-    createdAt: "2024-01-01T00:00:00", 
-    updatedAt: "2024-01-01T00:00:00" 
-  },
-  { 
-    id: 2, 
-    category: getMockCategories()[2], 
-    title: "회의", 
-    description: "팀 워크샵", 
-    startTime: "2025-09-02T10:00:00", 
-    endTime: "2025-09-07T18:00:00", 
-    isRecurring: false,
-    createdAt: "2024-01-01T00:00:00", 
-    updatedAt: "2024-01-01T00:00:00" 
-  },
-  { 
-    id: 3, 
-    category: getMockCategories()[0], 
-    title: "운동", 
-    description: "헬스장", 
-    startTime: "2025-09-10T19:00:00", 
-    endTime: "2025-09-12T21:00:00", 
-    isRecurring: false,
-    createdAt: "2024-01-01T00:00:00", 
-    updatedAt: "2024-01-01T00:00:00" 
-  },
-  { 
-    id: 4, 
-    category: getMockCategories()[1], 
-    title: "공부", 
-    description: "집중 학습 기간", 
-    startTime: "2025-09-15T09:00:00", 
-    endTime: "2025-09-17T18:00:00", 
-    isRecurring: false,
-    createdAt: "2024-01-01T00:00:00", 
-    updatedAt: "2024-01-01T00:00:00" 
-  },
-  { 
-    id: 5, 
-    category: getMockCategories()[3], 
-    title: "청소", 
-    description: "대청소", 
-    startTime: "2025-09-20T10:00:00", 
-    endTime: "2025-09-22T16:00:00", 
-    isRecurring: false,
-    createdAt: "2024-01-01T00:00:00", 
-    updatedAt: "2024-01-01T00:00:00" 
-  },
-  { 
-    id: 6, 
-    category: getMockCategories()[2], 
-    title: "프로젝트", 
-    description: "포트폴리오 작업", 
-    startTime: "2025-09-25T14:00:00", 
-    endTime: "2025-09-27T18:00:00", 
-    isRecurring: false,
-    createdAt: "2024-01-01T00:00:00", 
-    updatedAt: "2024-01-01T00:00:00" 
-  },
-  { 
-    id: 7, 
-    category: getMockCategories()[3], 
-    title: "휴식", 
-    description: "휴가", 
-    startTime: "2025-09-29T00:00:00", 
-    endTime: "2025-09-30T23:59:59", 
-    isRecurring: false,
-    createdAt: "2024-01-01T00:00:00", 
-    updatedAt: "2024-01-01T00:00:00" 
-  },
-  { 
-    id: 8, 
-    category: getMockCategories()[1], 
-    title: "독서", 
-    description: "자기계발 책 읽기", 
-    startTime: "2025-09-01T20:00:00", 
-    endTime: "2025-09-01T22:00:00", 
-    isRecurring: false,
-    createdAt: "2024-01-01T00:00:00", 
-    updatedAt: "2024-01-01T00:00:00" 
-  },
-  { 
-    id: 9, 
-    category: getMockCategories()[3], 
-    title: "장보기", 
-    description: "식료품 구매", 
-    startTime: "2025-09-04T19:00:00", 
-    endTime: "2025-09-04T21:00:00", 
-    isRecurring: false,
-    createdAt: "2024-01-01T00:00:00", 
-    updatedAt: "2024-01-01T00:00:00" 
-  },
-  { 
-    id: 10, 
-    category: getMockCategories()[3], 
-    title: "영화보기", 
-    description: "새로 개봉한 영화", 
-    startTime: "2025-09-09T19:30:00", 
-    endTime: "2025-09-09T22:00:00", 
-    isRecurring: false,
-    createdAt: "2024-01-01T00:00:00", 
-    updatedAt: "2024-01-01T00:00:00" 
-  },
-];
 
 const getCurrentMonthString = (): string => {
   const today = new Date();
@@ -144,9 +25,15 @@ export default function PlanPage() {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [currentMonth, setCurrentMonth] = useState<string>('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const token = getAccessToken();
+    console.log(token);
+    
     if (!token) {
       router.replace("/?loginRequired=1");
     }
@@ -156,10 +43,33 @@ export default function PlanPage() {
     setCurrentMonth(getCurrentMonthString());
   }, []);
 
+  // 이벤트와 카테고리 데이터 로드
   useEffect(() => {
-    setEvents(getMockEvents());
-    setCategories(getMockCategories());
-  }, []);
+    const loadData = async () => {
+      if (!currentMonth) return;
+      
+      setLoading(true);
+      setError(null);
+      
+      try {
+        const [year, month] = currentMonth.split('-').map(Number);
+        const [eventsData, categoriesData] = await Promise.all([
+          getEvents(year, month),
+          getCategory()
+        ]);
+        
+        setEvents(eventsData);
+        setCategories(categoriesData);
+      } catch (err) {
+        console.error('데이터 로드 실패:', err);
+        setError('데이터를 불러오는데 실패했습니다.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, [currentMonth]);
 
   const resetView = () => {
     setSelectedDate(null);
@@ -200,24 +110,26 @@ export default function PlanPage() {
   const handleOpenModal = () => setIsModalOpen(true);
   const handleCloseModal = () => setIsModalOpen(false);
 
-  const handleSubmitEvent = (req: CreateEventRequest) => {
-    const selectedCategory = categories.find(cat => cat.id === req.categoryId);
-    if (!selectedCategory) return;
+  const handleEditEvent = (event: Event) => {
+    setEditingEvent(event);
+    setIsEditModalOpen(true);
+  };
 
-    const newEvent: Event = {
-      id: Date.now(),
-      category: selectedCategory,
-      title: req.title,
-      description: req.description,
-      startTime: req.startTime,
-      endTime: req.endTime,
-      isRecurring: req.isRecurring,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+  const handleCloseEditModal = () => {
+    setIsEditModalOpen(false);
+    setEditingEvent(null);
+  };
 
-    setEvents(prev => [...prev, newEvent]);
-    setIsModalOpen(false);
+  const handleSubmitEvent = async (createdEvents: Event[]) => {
+    try {
+      if (!createdEvents || createdEvents.length === 0) return;
+      setEvents(prev => [...prev, ...createdEvents]);
+      setIsModalOpen(false);
+      setIsEditModalOpen(false);
+    } catch (err) {
+      console.error('이벤트 생성 처리 실패:', err);
+      setError('이벤트 생성 처리에 실패했습니다.');
+    }
   };
 
   return (
@@ -234,17 +146,36 @@ export default function PlanPage() {
             />
           </div>
           <div className="schedule-section">
-            <ScheduleList
-              events={events}
-              categories={categories}
-              selectedDate={selectedDate}
-              currentMonth={currentMonth}
-              viewMode={viewMode}
-              selectedEvent={selectedEvent}
-              onEventSelect={handleEventSelect}
-              onBackToList={handleBackToList}
-              onViewAllEvents={handleViewAllEvents}
-            />
+            {loading ? (
+              <div className="loading-state">
+                <div className="loading-spinner"></div>
+                <p>일정을 불러오는 중...</p>
+              </div>
+            ) : error ? (
+              <div className="error-state">
+                <div className="error-icon">⚠️</div>
+                <p>{error}</p>
+                <button 
+                  onClick={() => window.location.reload()} 
+                  className="retry-btn"
+                >
+                  다시 시도
+                </button>
+              </div>
+            ) : (
+              <ScheduleList
+                events={events}
+                categories={categories}
+                selectedDate={selectedDate}
+                currentMonth={currentMonth}
+                viewMode={viewMode}
+                selectedEvent={selectedEvent}
+                onEventSelect={handleEventSelect}
+                onBackToList={handleBackToList}
+                onViewAllEvents={handleViewAllEvents}
+                onEditEvent={handleEditEvent}
+              />
+            )}
           </div>
         </div>
       </main>
@@ -257,6 +188,14 @@ export default function PlanPage() {
         isOpen={isModalOpen}
         onClose={handleCloseModal}
         onSubmit={handleSubmitEvent}
+      />
+
+      <ScheduleModal
+        isOpen={isEditModalOpen}
+        onClose={handleCloseEditModal}
+        onSubmit={handleSubmitEvent}
+        editEvent={editingEvent || undefined}
+        isEditMode={true}
       />
     </>
   );

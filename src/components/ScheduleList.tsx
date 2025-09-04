@@ -12,6 +12,7 @@ interface ScheduleListProps {
   onEventSelect: (event: Event) => void;
   onBackToList: () => void;
   onViewAllEvents: () => void;
+  onEditEvent?: (event: Event) => void;
 }
 
 export default function ScheduleList({
@@ -23,14 +24,17 @@ export default function ScheduleList({
   selectedEvent,
   onEventSelect,
   onBackToList,
-  onViewAllEvents
+  onViewAllEvents,
+  onEditEvent
 }: ScheduleListProps) {
   const getEventsForDate = (date: string) => {
     return events.filter(event => {
-      const startDate = new Date(event.startTime);
-      const endDate = new Date(event.endTime);
+      const eventStartDate = new Date(event.startTime.split('T')[0]);
+      const eventEndDate = new Date(event.endTime.split('T')[0]);
       const currentDate = new Date(date);
-      return currentDate >= startDate && currentDate <= endDate;
+      
+      // 정확한 날짜 매칭 (시간 부분 제외)
+      return currentDate >= eventStartDate && currentDate <= eventEndDate;
     });
   };
 
@@ -42,8 +46,8 @@ export default function ScheduleList({
     const endOfMonth = new Date(year, month, 0);
     
     return events.filter(event => {
-      const eventStartDate = new Date(event.startTime);
-      const eventEndDate = new Date(event.endTime);
+      const eventStartDate = new Date(event.startTime.split('T')[0]);
+      const eventEndDate = new Date(event.endTime.split('T')[0]);
       return (eventStartDate <= endOfMonth && eventEndDate >= startOfMonth);
     });
   };
@@ -74,7 +78,11 @@ export default function ScheduleList({
           </button>
           <h3 className="detail-title">{formatDate(selectedEvent.startTime)}</h3>
           <div className="detail-actions-top">
-            <button className="action-icon-btn edit-icon-btn" title="수정">
+            <button 
+              className="action-icon-btn edit-icon-btn" 
+              title="수정"
+              onClick={() => onEditEvent?.(selectedEvent)}
+            >
               ✏
             </button>
             <button className="action-icon-btn delete-icon-btn" title="삭제">
@@ -129,8 +137,25 @@ export default function ScheduleList({
             <label className="detail-label">반복</label>
             <div className="detail-value">
               <span className={`status-badge ${selectedEvent.isRecurring ? 'completed' : 'pending'}`}>
-                {selectedEvent.isRecurring ? '반복' : '일회성'}
+                {selectedEvent.isRecurring ? (selectedEvent.originalEventId ? '반복' : '원본') : '일회성'}
               </span>
+              {selectedEvent.isRecurring && selectedEvent.recurrenceRule && (
+                <div style={{ marginTop: '8px', fontSize: '0.875rem', color: '#6b7280' }}>
+                  {selectedEvent.recurrenceRule.frequency === 'DAILY' && '매일'}
+                  {selectedEvent.recurrenceRule.frequency === 'WEEKLY' && '매주'}
+                  {selectedEvent.recurrenceRule.frequency === 'MONTHLY' && '매월'}
+                  {selectedEvent.recurrenceRule.daysOfWeek && selectedEvent.recurrenceRule.daysOfWeek.length > 0 && (
+                    <span> ({selectedEvent.recurrenceRule.daysOfWeek.map(day => 
+                      ['일', '월', '화', '수', '목', '금', '토'][parseInt(day)]
+                    ).join(', ')})</span>
+                  )}
+                  {selectedEvent.recurrenceRule.endDate && (
+                    <div style={{ marginTop: '4px' }}>
+                      종료: {new Date(selectedEvent.recurrenceRule.endDate).toLocaleDateString()}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -172,9 +197,9 @@ export default function ScheduleList({
         </div>
       ) : (
         <div className="schedule-items">
-          {filteredEvents.map(event => (
+          {filteredEvents.map((event, index) => (
             <div
-              key={event.id}
+              key={event.id || `event-${index}`}
               className="schedule-item"
               onClick={() => onEventSelect(event)}
             >
@@ -196,7 +221,9 @@ export default function ScheduleList({
                     {formatTime(event.startTime)} - {formatTime(event.endTime)}
                   </span>
                   {event.isRecurring && (
-                    <span className="completion-badge">반복</span>
+                    <span className="completion-badge">
+                      {event.originalEventId ? '반복' : '원본'}
+                    </span>
                   )}
                 </div>
               </div>

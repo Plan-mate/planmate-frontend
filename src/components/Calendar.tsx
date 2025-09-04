@@ -46,10 +46,12 @@ export default function Calendar({ events, selectedDate, onDateSelect, onMonthCh
   const getEventsForDate = (date: Date) => {
     const dateStr = formatDate(date);
     return events.filter(event => {
-      const startDate = new Date(event.startTime);
-      const endDate = new Date(event.endTime);
+      const eventStartDate = new Date(event.startTime.split('T')[0]);
+      const eventEndDate = new Date(event.endTime.split('T')[0]);
       const currentDate = new Date(dateStr);
-      return currentDate >= startDate && currentDate <= endDate;
+      
+      // 정확한 날짜 매칭 (시간 부분 제외)
+      return currentDate >= eventStartDate && currentDate <= eventEndDate;
     });
   };
 
