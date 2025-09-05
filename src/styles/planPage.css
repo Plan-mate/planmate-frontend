@@ -784,6 +784,83 @@
   background: #2563eb;
 }
 
+/* 스코프 선택 모달 스타일 */
+.scope-selection-content {
+  padding: 24px;
+}
+
+.event-info {
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.event-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 8px 0;
+}
+
+.event-description {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.scope-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.scope-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: left;
+  width: 100%;
+}
+
+.scope-option:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
+}
+
+.scope-option-content {
+  flex: 1;
+}
+
+.scope-option-header {
+  margin-bottom: 4px;
+}
+
+.scope-option-label {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.scope-option-description {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.scope-option-arrow {
+  color: #9ca3af;
+  font-size: 1.25rem;
+  font-weight: 300;
+  margin-left: 12px;
+}
+
 @media (max-width: 420px) {
   .plan-container { padding: 10px 8px; }
   .calendar-section, .schedule-section { padding: 12px; }

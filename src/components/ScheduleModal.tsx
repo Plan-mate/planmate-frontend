@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Category, CreateEventRequest, Event } from "@/types/event";
-import { createEvent, getCategory } from "@/api/services/plan";
+import { Category, CreateEventRequest, Event, Scope } from "@/types/event";
+import { createEvent, getCategory, updateEvent } from "@/api/services/plan";
 import "@/styles/scheduleModal.css";
 
 interface ScheduleModalProps {
@@ -12,6 +12,7 @@ interface ScheduleModalProps {
   categories?: Category[];
   editEvent?: Event;
   isEditMode?: boolean;
+  selectedScope?: Scope;
 }
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
@@ -124,7 +125,7 @@ const INITIAL_FORM_DATA: CreateEventRequest = {
   isRecurring: false,
 };
 
-export default function ScheduleModal({ isOpen, onClose, onSubmit, categories, editEvent, isEditMode = false }: ScheduleModalProps) {
+export default function ScheduleModal({ isOpen, onClose, onSubmit, categories, editEvent, isEditMode = false, selectedScope = 'ALL' }: ScheduleModalProps) {
   const [formData, setFormData] = useState<CreateEventRequest>(INITIAL_FORM_DATA);
   const [recurrenceType, setRecurrenceType] = useState<'DAILY' | 'WEEKLY' | 'MONTHLY'>('DAILY');
   const [selectedDays, setSelectedDays] = useState<number[]>([]);
@@ -135,6 +136,8 @@ export default function ScheduleModal({ isOpen, onClose, onSubmit, categories, e
   const [categoriesLocal, setCategoriesLocal] = useState<Category[]>(categories ?? []);
   const [isLoadingCategories, setIsLoadingCategories] = useState(false);
   const [validationError, setValidationError] = useState<string>("");
+  const [isInitialized, setIsInitialized] = useState(false);
+  const [noChangesMessage, setNoChangesMessage] = useState<string>("");
 
   const isValid = useMemo(() => {
     if (!formData.title || !formData.title.trim()) return false;
@@ -150,13 +153,44 @@ export default function ScheduleModal({ isOpen, onClose, onSubmit, categories, e
       const durationDays = calculateDurationInDays(formData.startTime, formData.endTime);
       const validation = validateRecurrenceSettings(durationDays, recurrenceType, selectedDays, selectedDates);
       if (!validation.isValid) {
-        setValidationError(validation.errorMessage || "");
         return false;
       }
     }
-    setValidationError("");
     return true;
   }, [formData.title, formData.categoryId, formData.startTime, formData.endTime, formData.isRecurring, recurrenceEndDate, recurrenceType, selectedDays, selectedDates]);
+
+  // 유효성 검사 및 에러 메시지 설정
+  useEffect(() => {
+    if (formData.isRecurring) {
+      const durationDays = calculateDurationInDays(formData.startTime, formData.endTime);
+      const validation = validateRecurrenceSettings(durationDays, recurrenceType, selectedDays, selectedDates);
+      if (!validation.isValid) {
+        setValidationError(validation.errorMessage || "");
+      } else {
+        setValidationError("");
+      }
+    } else {
+      setValidationError("");
+    }
+  }, [formData.isRecurring, formData.startTime, formData.endTime, recurrenceType, selectedDays, selectedDates]);
+
+  // isRecurring이 변경될 때 반복 설정 필드들 초기화/설정
+  useEffect(() => {
+    if (!formData.isRecurring) {
+      setRecurrenceType('DAILY');
+      setSelectedDays([]);
+      setSelectedDates([]);
+      setRecurrenceEndDate("");
+      setValidationError("");
+    } else {
+      // 반복일정으로 변경될 때 기본값 설정
+      if (!recurrenceEndDate) {
+        const endDate = new Date(formData.endTime);
+        endDate.setDate(endDate.getDate() + 30); // 기본 30일 후 종료
+        setRecurrenceEndDate(formatDate(endDate));
+      }
+    }
+  }, [formData.isRecurring, formData.endTime, recurrenceEndDate]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -190,7 +224,8 @@ export default function ScheduleModal({ isOpen, onClose, onSubmit, categories, e
       
       const startTime = editEvent.startTime.split('T')[1];
       const endTime = editEvent.endTime.split('T')[1];
-      setIsAllDay(startTime === '00:00' && endTime === '23:59');
+      const isAllDayEvent = (startTime === '00:00' || startTime === '00:00:00') && (endTime === '23:59' || endTime === '23:59:00');
+      setIsAllDay(isAllDayEvent);
       
       if (editEvent.isRecurring && editEvent.recurrenceRule) {
         const rule = editEvent.recurrenceRule;
@@ -220,6 +255,7 @@ export default function ScheduleModal({ isOpen, onClose, onSubmit, categories, e
         setSelectedDates([]);
         setRecurrenceEndDate("");
       }
+      setIsInitialized(true);
     } else if (isOpen && !isEditMode) {
       setFormData(INITIAL_FORM_DATA);
       setIsAllDay(true);
@@ -227,6 +263,7 @@ export default function ScheduleModal({ isOpen, onClose, onSubmit, categories, e
       setSelectedDays([]);
       setSelectedDates([]);
       setRecurrenceEndDate("");
+      setIsInitialized(true);
     }
   }, [isOpen, isEditMode, editEvent]);
 
@@ -296,6 +333,87 @@ export default function ScheduleModal({ isOpen, onClose, onSubmit, categories, e
     return req;
   };
 
+  const getChangedFields = (original: Event, updated: CreateEventRequest) => {
+    const changes: Partial<CreateEventRequest> = {};
+    
+    if (original.title !== updated.title) {
+      changes.title = updated.title;
+    }
+    
+    if (original.description !== updated.description) {
+      changes.description = updated.description;
+    }
+    
+    if (original.category.id !== updated.categoryId) {
+      changes.categoryId = updated.categoryId;
+    }
+    
+    // 날짜 변경 감지
+    // 반복일정 인스턴스의 경우 scope에 따라 다르게 처리
+    if (original.startTime !== updated.startTime) {
+      changes.startTime = updated.startTime;
+    }
+    
+    if (original.endTime !== updated.endTime) {
+      changes.endTime = updated.endTime;
+    }
+    
+    // 반복일정 인스턴스 수정 시에는 항상 해당 인스턴스의 날짜를 포함
+    // (원본 일정의 날짜가 아닌 실제 인스턴스의 날짜)
+    if (original.originalEventId !== null) {
+      // 반복일정 인스턴스인 경우, 해당 인스턴스의 실제 날짜를 사용
+      changes.startTime = original.startTime;
+      changes.endTime = original.endTime;
+    }
+    
+    if (original.isRecurring !== updated.isRecurring) {
+      changes.isRecurring = updated.isRecurring;
+    }
+
+    // 단일 → 반복 전환 시, 백엔드가 기준 날짜를 올바로 인지하도록
+    // 시작/종료 시간을 항상 포함해서 보낸다
+    if (original.isRecurring === false && updated.isRecurring === true) {
+      changes.startTime = updated.startTime;
+      changes.endTime = updated.endTime;
+    }
+    
+    // 반복 → 단일 전환 시, 반복 설정을 제거
+    if (original.isRecurring === true && updated.isRecurring === false) {
+      changes.isRecurring = false;
+      changes.recurrenceRule = undefined;
+    }
+    
+    if (original.isRecurring && updated.isRecurring) {
+      const originalRule = original.recurrenceRule;
+      const updatedRule = updated.recurrenceRule;
+      
+      if (originalRule && updatedRule) {
+        const frequencyChanged = originalRule.frequency !== updatedRule.frequency;
+        const intervalChanged = originalRule.interval !== updatedRule.interval;
+        
+        const originalDaysOfWeek = originalRule.daysOfWeek ? [...originalRule.daysOfWeek].map(Number).sort() : [];
+        const updatedDaysOfWeek = updatedRule.daysOfWeek ? [...updatedRule.daysOfWeek].map(Number).sort() : [];
+        const daysOfWeekChanged = JSON.stringify(originalDaysOfWeek) !== JSON.stringify(updatedDaysOfWeek);
+        
+        const originalDaysOfMonth = originalRule.daysOfMonth || null;
+        const updatedDaysOfMonth = updatedRule.daysOfMonth || null;
+        const daysOfMonthChanged = JSON.stringify(originalDaysOfMonth) !== JSON.stringify(updatedDaysOfMonth);
+        
+        const endDateChanged = originalRule.endDate !== updatedRule.endDate;
+        
+        if (frequencyChanged || intervalChanged || daysOfWeekChanged || daysOfMonthChanged || endDateChanged) {
+          changes.recurrenceRule = updatedRule;
+        }
+      } else if (originalRule !== updatedRule) {
+        changes.recurrenceRule = updatedRule;
+      }
+    } else if (original.isRecurring !== updated.isRecurring) {
+      changes.recurrenceRule = updated.recurrenceRule;
+    }
+    
+    return changes;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmitting) return;
@@ -304,12 +422,61 @@ export default function ScheduleModal({ isOpen, onClose, onSubmit, categories, e
 
     try {
       const req = buildRequest();
-      const created = await createEvent(req);
-      onSubmit(created as Event[]);
+      
+      if (isEditMode && editEvent) {
+        if (!isInitialized) {
+          alert('아직 로딩 중입니다. 잠시 후 다시 시도해주세요.');
+          setIsSubmitting(false);
+          return;
+        }
+        
+        const changedFields = getChangedFields(editEvent, req);
+        
+        console.log('=== 수정 요청 디버깅 ===');
+        console.log('editEvent:', editEvent);
+        console.log('req:', req);
+        console.log('changedFields:', changedFields);
+        console.log('selectedScope:', selectedScope);
+        console.log('isRecurringInstance:', editEvent.originalEventId !== null);
+        if (editEvent.originalEventId !== null) {
+          console.log('반복일정 인스턴스 수정 - 원본 ID:', editEvent.originalEventId);
+          console.log('인스턴스 실제 날짜:', editEvent.startTime, '~', editEvent.endTime);
+        }
+        console.log('========================');
+        
+        if (Object.keys(changedFields).length === 0) {
+          setNoChangesMessage('변경된 내용이 없습니다.');
+          setIsSubmitting(false);
+          return;
+        }
+        
+        // 단일 → 반복 전환 시에도 SINGLE scope 사용 (백엔드에서 반복 설정 처리)
+        const scopeForUpdate = selectedScope;
+        const updateReq = {
+          eventId: editEvent.id || editEvent.originalEventId || 0,
+          scope: scopeForUpdate,
+          event: changedFields
+        };
+        
+        try {
+          const updated = await updateEvent(updateReq);
+          console.log('updated', updated);
+          onSubmit(updated as Event[]);
+        } catch (error) {
+          console.error('이벤트 수정 실패:', error);
+          setValidationError('이벤트 수정에 실패했습니다. 다시 시도해주세요.');
+          setIsSubmitting(false);
+          return;
+        }
+      } else {
+        const created = await createEvent(req);
+        onSubmit(created as Event[]);
+      }
+      
       handleClose();
     } catch (err) {
       console.error(err);
-      alert('일정 생성에 실패했습니다. 잠시 후 다시 시도해주세요.');
+      alert(isEditMode ? '일정 수정에 실패했습니다. 잠시 후 다시 시도해주세요.' : '일정 생성에 실패했습니다. 잠시 후 다시 시도해주세요.');
     } finally {
       setIsSubmitting(false);
     }
@@ -335,15 +502,17 @@ export default function ScheduleModal({ isOpen, onClose, onSubmit, categories, e
     setSelectedDays([]);
     setSelectedDates([]);
     setRecurrenceEndDate("");
-    setIsAllDay(true);
     setValidationError("");
     setIsSubmitting(false);
+    setIsInitialized(false);
+    setNoChangesMessage("");
     onClose();
   };
 
   if (!isOpen) return null;
 
   const startDateOnly = formData.startTime ? formData.startTime.slice(0,10) : todayStr;
+  const endDateOnly = formData.endTime ? formData.endTime.slice(0,10) : todayStr;
   const durationDays = calculateDurationInDays(formData.startTime, formData.endTime);
   const validRecurrenceTypes = getValidRecurrenceTypes(durationDays);
 
@@ -356,6 +525,17 @@ export default function ScheduleModal({ isOpen, onClose, onSubmit, categories, e
           </button>
           <h2 className="modal-title">{isEditMode ? '일정 수정' : '새 일정'}</h2>
         </div>
+
+        {noChangesMessage && (
+          <div className="no-changes-message">
+            <div className="message-content">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="message-icon">
+                <path d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              <span>{noChangesMessage}</span>
+            </div>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="schedule-form toss-form compact pm-form">
           <div className="form-section">
@@ -626,7 +806,9 @@ export default function ScheduleModal({ isOpen, onClose, onSubmit, categories, e
 
           <div className="form-actions pm-actions">
             <button type="button" className="cancel-btn pm-btn pm-btn--ghost" onClick={handleClose}>취소</button>
-            <button type="submit" className="submit-btn pm-btn pm-btn--primary" disabled={isSubmitting || !isValid}>등록</button>
+            <button type="submit" className="submit-btn pm-btn pm-btn--primary" disabled={isSubmitting || !isValid}>
+              {isEditMode ? '수정' : '등록'}
+            </button>
           </div>
         </form>
       </div>

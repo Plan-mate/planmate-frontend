@@ -45,3 +45,11 @@ export interface CreateEventRequest {
 export interface UpdateEventRequest extends Partial<CreateEventRequest> {
   id: number;
 }
+
+export type Scope = 'SINGLE' | 'THIS' | 'THIS_AND_FUTURE' | 'ALL';
+
+export interface EventUpdateRequest {
+  eventId: number;
+  scope: Scope;
+  event: Partial<CreateEventRequest>;
+}

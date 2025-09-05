@@ -1,6 +1,6 @@
 "use client";
 
-import { Event, Category } from "@/types/event";
+import { Event, Category, Scope } from "@/types/event";
 
 interface ScheduleListProps {
   events: Event[];
@@ -12,7 +12,7 @@ interface ScheduleListProps {
   onEventSelect: (event: Event) => void;
   onBackToList: () => void;
   onViewAllEvents: () => void;
-  onEditEvent?: (event: Event) => void;
+  onEditEvent?: (event: Event, scope?: Scope) => void;
 }
 
 export default function ScheduleList({
