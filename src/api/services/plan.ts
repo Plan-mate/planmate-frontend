@@ -11,12 +11,13 @@ export const updateEvent = async (payload: EventUpdateRequest): Promise<Event[]>
     scope: payload.scope,
     event: payload.event
   });
-  console.log('data', data);
   return data as Event[];
 };
 
-export const deleteEvent = async (eventId: number, scope: Scope): Promise<void> => {
-  await authenticatedClient.delete(`/events/${eventId}?scope=${scope}`);
+export const deleteEvent = async (eventId: number, scope: Scope, targetTime?: string): Promise<void> => {
+  await authenticatedClient.delete(`/events/${eventId}`, {
+    data: { scope, targetTime }
+  });
 };
 
 export const getEvents = async (year: number, month: number): Promise<Event[]> => {

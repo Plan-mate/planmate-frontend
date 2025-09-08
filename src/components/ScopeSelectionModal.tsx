@@ -7,33 +7,32 @@ interface ScopeSelectionModalProps {
   onClose: () => void;
   onSelectScope: (scope: Scope) => void;
   event: Event;
+  mode?: 'edit' | 'delete';
 }
 
-const SCOPE_OPTIONS: { value: Scope; label: string; description: string }[] = [
-  {
-    value: 'THIS',
-    label: '이 일정만',
-    description: '선택한 일정만 수정합니다'
-  },
-  {
-    value: 'THIS_AND_FUTURE',
-    label: '이 일정부터 모든 일정',
-    description: '선택한 일정부터 앞으로의 모든 반복 일정을 수정합니다'
-  },
-  {
-    value: 'ALL',
-    label: '전체 일정',
-    description: '이 반복 일정의 모든 인스턴스를 수정합니다'
-  }
+const SCOPE_OPTIONS_EDIT: { value: Scope; label: string; description: string }[] = [
+  { value: 'THIS', label: '이 일정만', description: '선택한 일정만 수정합니다' },
+  { value: 'THIS_AND_FUTURE', label: '이 일정 이후', description: '선택 시 이 일정 시점 이후만 수정합니다' },
+  { value: 'ALL', label: '전체 일정', description: '반복 전체를 수정합니다' }
+];
+
+const SCOPE_OPTIONS_DELETE: { value: Scope; label: string; description: string }[] = [
+  { value: 'THIS', label: '이 일정만', description: '이 한 일정만 삭제합니다' },
+  { value: 'THIS_AND_FUTURE', label: '이 일정 이후', description: '이 일정 시점 이후 반복 일정만 삭제합니다' },
+  { value: 'ALL', label: '전체 일정', description: '반복 전체를 삭제합니다' }
 ];
 
 export default function ScopeSelectionModal({ 
   isOpen, 
   onClose, 
   onSelectScope, 
-  event 
+  event,
+  mode = 'edit'
 }: ScopeSelectionModalProps) {
   if (!isOpen) return null;
+
+  const isDelete = mode === 'delete';
+  const options = isDelete ? SCOPE_OPTIONS_DELETE : SCOPE_OPTIONS_EDIT;
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -44,19 +43,19 @@ export default function ScopeSelectionModal({
               <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
-          <h2 className="modal-title">수정 범위 선택</h2>
+          <h2 className="modal-title">{isDelete ? '삭제 범위 선택' : '수정 범위 선택'}</h2>
         </div>
 
         <div className="scope-selection-content">
           <div className="event-info">
             <h3 className="event-title">{event.title}</h3>
             <p className="event-description">
-              반복 일정의 수정 범위를 선택해주세요.
+              {isDelete ? '반복 일정의 삭제 범위를 선택해주세요.' : '반복 일정의 수정 범위를 선택해주세요.'}
             </p>
           </div>
 
           <div className="scope-options">
-            {SCOPE_OPTIONS.map((option) => (
+            {options.map((option) => (
               <button
                 key={option.value}
                 className="scope-option"
