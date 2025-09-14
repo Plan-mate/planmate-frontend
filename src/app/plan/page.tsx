@@ -9,9 +9,11 @@ import ScheduleList from "@/components/ScheduleList";
 import ScheduleModal from "@/components/ScheduleModal";
 import ScopeSelectionModal from "@/components/ScopeSelectionModal";
 import ConfirmModal from "@/components/ConfirmModal";
+import SummaryModal from "@/components/SummaryModal";
 import { Event, Category, Scope } from "@/types/event";
-import { getEvents, getCategory, deleteEvent } from "@/api/services/plan";
+import { getEvents, getCategory, deleteEvent, checkDailyLogin, getTodaySummary, LocationData } from "@/api/services/plan";
 import { getCurrentMonthString } from "@/utils/date";
+import { getWeatherGridCoords } from "@/utils/weatherGrid";
 import { useToast } from "@/components/ToastProvider";
 import "@/styles/planPage.css";
 
@@ -35,49 +37,96 @@ export default function PlanPage() {
   const [confirmTitle, setConfirmTitle] = useState<string>("");
   const [confirmDesc, setConfirmDesc] = useState<string>("");
   const [selectedScope, setSelectedScope] = useState<Scope>('ALL');
-  const selectedScopeRef = useRef<Scope>('ALL');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const isOriginalRecurring = (ev: Event): boolean => ev.isRecurring === true && (ev.originalEventId === null || ev.originalEventId === undefined);
-  const buildKey = (e: Event) => `${e.title}|${e.category.id}|${e.startTime}|${e.endTime}`;
+  const [isSummaryModalOpen, setIsSummaryModalOpen] = useState(false);
+  
+  const selectedScopeRef = useRef<Scope>('ALL');
 
-  useEffect(() => {
-    const token = getAccessToken();
-    
-    if (!token) {
-      router.replace("/?loginRequired=1");
-    }
-  }, [router]);
+  const isOriginalRecurring = (ev: Event): boolean => 
+    ev.isRecurring === true && (ev.originalEventId === null || ev.originalEventId === undefined);
+  
+  const buildKey = (e: Event) => 
+    `${e.title}|${e.category.id}|${e.startTime}|${e.endTime}`;
 
-  useEffect(() => {
-    setCurrentMonth(getCurrentMonthString());
-  }, []);
-
-  useEffect(() => {
-    const loadData = async () => {
-      if (!currentMonth) return;
-      
-      setLoading(true);
-      setError(null);
-      
-      try {
-        const [year, month] = currentMonth.split('-').map(Number);
-        const [eventsData, categoriesData] = await Promise.all([
-          getEvents(year, month),
-          getCategory()
-        ]);
-        
-        setEvents(eventsData);
-        setCategories(categoriesData);
-      } catch (err) {
-        setError('데이터를 불러오는데 실패했습니다.');
-      } finally {
-        setLoading(false);
+  const getLocation = (): Promise<GeolocationPosition> => {
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject('Geolocation is not supported by your browser');
+        return;
       }
-    };
+      
+      navigator.geolocation.getCurrentPosition(
+        resolve,
+        reject,
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 60000
+        }
+      );
+    });
+  };
 
-    loadData();
-  }, [currentMonth]);
+  const getWeatherLocationInfo = async (lat: number, lon: number): Promise<{locationName: string, nx: number, ny: number}> => {
+    try {
+      const KAKAO_API_KEY = process.env.NEXT_PUBLIC_KAKAO_MAP_API_KEY || '2e118497c276958d5cf90a061f09fbad';
+      const url = `https://dapi.kakao.com/v2/local/geo/coord2address.json?x=${lon}&y=${lat}`;
+      
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `KakaoAK ${KAKAO_API_KEY}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`카카오맵 API 에러: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.documents && data.documents.length > 0) {
+        const addressInfo = data.documents[0].address;
+        const locationName = `${addressInfo.region_1depth_name} ${addressInfo.region_2depth_name}`;
+        const { nx, ny } = getWeatherGridCoords(lat, lon);
+        
+        return { locationName, nx, ny };
+      }
+      
+      throw new Error('위치 정보를 찾을 수 없습니다');
+    } catch (error) {
+      const { nx, ny } = getWeatherGridCoords(lat, lon);
+      return {
+        locationName: '알 수 없는 위치',
+        nx,
+        ny
+      };
+    }
+  };
+
+  // Data loading
+  const loadData = async () => {
+    if (!currentMonth) return;
+    
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const [year, month] = currentMonth.split('-').map(Number);
+      const [eventsData, categoriesData] = await Promise.all([
+        getEvents(year, month),
+        getCategory()
+      ]);
+      
+      setEvents(eventsData);
+      setCategories(categoriesData);
+    } catch (err) {
+      setError('데이터를 불러오는데 실패했습니다.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const reloadEvents = async () => {
     try {
       const [year, month] = currentMonth.split('-').map(Number);
@@ -92,6 +141,7 @@ export default function PlanPage() {
     }
   };
 
+  // View management
   const resetView = () => {
     setSelectedDate(null);
     setViewMode('list');
@@ -128,6 +178,7 @@ export default function PlanPage() {
     resetView();
   };
 
+  // Modal management
   const handleOpenModal = () => setIsModalOpen(true);
   const handleCloseModal = () => setIsModalOpen(false);
 
@@ -190,7 +241,8 @@ export default function PlanPage() {
     if (pendingDeleteEvent) {
       setPendingDeleteScope(scope);
       setIsScopeModalOpen(false);
-      const scopeText = scope === 'ALL' ? '반복 일정 전체' : scope === 'THIS_AND_FUTURE' ? '이 일정 이후의 반복 일정' : '이 일정만';
+      const scopeText = scope === 'ALL' ? '반복 일정 전체' : 
+                       scope === 'THIS_AND_FUTURE' ? '이 일정 이후의 반복 일정' : '이 일정만';
       setConfirmTitle('일정 삭제');
       setConfirmDesc(`선택한 범위: ${scopeText}\n삭제 후에는 복구할 수 없습니다.\n정말 삭제하시겠어요?`);
       setIsConfirmOpen(true);
@@ -206,15 +258,22 @@ export default function PlanPage() {
     }
   };
 
+  // Event deletion logic
   const handleConfirmDelete = () => {
-    if (!pendingDeleteEvent) { setIsConfirmOpen(false); return; }
+    if (!pendingDeleteEvent) { 
+      setIsConfirmOpen(false); 
+      return; 
+    }
+    
     const scope = pendingDeleteScope || 'SINGLE';
     const id = (pendingDeleteEvent.id && pendingDeleteEvent.id > 0)
       ? pendingDeleteEvent.id
       : (pendingDeleteEvent.originalEventId || 0);
+    
     setEvents(prev => {
       if (!pendingDeleteEvent) return prev;
       const target = pendingDeleteEvent;
+      
       if (scope === 'SINGLE') {
         return prev.filter(ev => ev.id !== target.id);
       }
@@ -248,7 +307,7 @@ export default function PlanPage() {
       return prev;
     });
 
-    // 서버 삭제 요청 (결과 바디 없음)
+    // Server deletion request
     (async () => {
       try {
         const targetTime = (scope === 'THIS' || scope === 'THIS_AND_FUTURE') ? `${pendingDeleteEvent.startTime}` : undefined;
@@ -256,7 +315,6 @@ export default function PlanPage() {
         showToast('일정을 삭제했어요', 'success');
       } catch (e) {
         showToast('일정 삭제에 실패했어요', 'error');
-        // 실패 시 최신 상태를 보장하려면 리로드
         await reloadEvents();
       } finally {
         setViewMode('list');
@@ -268,6 +326,7 @@ export default function PlanPage() {
     })();
   };
 
+  // Event submission
   const handleSubmitEvent = async (createdEvents: Event[]) => {
     try {
       if (!createdEvents || createdEvents.length === 0) return;
@@ -325,6 +384,7 @@ export default function PlanPage() {
                     return false;
                   }
                 } catch {
+                  // Ignore date parsing errors
                 }
               }
             } else if (scopeSnapshot === 'THIS') {
@@ -370,13 +430,80 @@ export default function PlanPage() {
       
       setIsEditModalOpen(false);
       setEditingEvent(null);
-      
-      
     } catch (err) {
-      
       setError('이벤트 수정 처리에 실패했습니다.');
     }
   };
+
+  // Effects
+  useEffect(() => {
+    const token = getAccessToken();
+    console.log('token', token);
+    if (!token) {
+      router.replace("/?loginRequired=1");
+    }
+  }, [router]);
+
+  useEffect(() => {
+    setCurrentMonth(getCurrentMonthString());
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [currentMonth]);
+
+  const requestLocationPermission = async (): Promise<{lat: number, lon: number} | null> => {
+    try {
+      const position = await getLocation();
+      return {
+        lat: position.coords.latitude,
+        lon: position.coords.longitude
+      };
+    } catch (error) {
+      // 위치 정보 거부 또는 오류 발생
+      return null;
+    }
+  };
+
+  const handleLocationRequest = async (): Promise<LocationData> => {
+    const coords = await requestLocationPermission();
+    
+    if (!coords) {
+      // 위치 정보를 거부한 경우 기본 위치(서울) 사용
+      // 서울의 기상청 격자 좌표: nx=60, ny=127
+      const defaultLocation = {
+        cityName: '서울특별시',
+        nx: 60,
+        ny: 127
+      };
+      
+      return defaultLocation;
+    }
+    
+    const weatherInfo = await getWeatherLocationInfo(coords.lat, coords.lon);
+    return {
+      cityName: weatherInfo.locationName,
+      nx: weatherInfo.nx,
+      ny: weatherInfo.ny
+    };
+  };
+
+  useEffect(() => {
+    const checkFirstLoginAndLocation = async () => {
+      try {
+        const dailyLoginResponse = await checkDailyLogin();
+
+        if (!dailyLoginResponse.firstLoginToday) {
+          const locationData = await handleLocationRequest();
+          await getTodaySummary(locationData);
+        }
+      } catch (err) {
+        // Silent fail for login check
+      }
+    };
+
+    checkFirstLoginAndLocation();
+  }, []);
 
   return (
     <>
@@ -464,8 +591,11 @@ export default function PlanPage() {
         onConfirm={handleConfirmDelete}
         onClose={() => setIsConfirmOpen(false)}
       />
+
+      <SummaryModal
+        isOpen={isSummaryModalOpen}
+        onClose={() => setIsSummaryModalOpen(false)}
+      />
     </>
   );
 }
-
-
