@@ -7,9 +7,6 @@ export interface LocationData {
   ny: number;
 }
 
-export interface DailyLoginResponse {
-  firstLoginToday: boolean;
-}
 
 export const createEvent = async (payload: CreateEventRequest): Promise<Event[]> => {
   const { data } = await authenticatedClient.post('/events', payload);
@@ -40,24 +37,27 @@ export const getCategory = async (): Promise<Category[]> => {
   return data;
 };
 
-export const checkDailyLogin = async (): Promise<DailyLoginResponse> => {
-  const { data } = await authenticatedClient.get('/user/check-daily-login');
-  return data;
-};
 
 export const getTodaySummary = async (locationData?: LocationData): Promise<string> => {
   let url = '/summary/today';
-  
+
+  let params: URLSearchParams | null = null;
   if (locationData) {
-    const params = new URLSearchParams({
+    params = new URLSearchParams({
       locationName: locationData.cityName,
       nx: locationData.nx.toString(),
       ny: locationData.ny.toString()
     });
-    
+  }
+
+  if (params) {
     url += `?${params.toString()}`;
   }
-  
+
   const { data } = await authenticatedClient.get(url);
   return data;
+};
+
+export const getRecommendations = async (): Promise<void> => {
+  await authenticatedClient.get('/summary/recommend');
 };

@@ -136,7 +136,7 @@ export default function ScheduleList({
     if (selectedDate) {
       return '이 날짜에 등록된 일정이 없습니다.';
     }
-    return `${formatDisplayMonth(currentMonth)}에 등록된 일정이 없습니다.`;
+    return `${formatDisplayMonth(currentMonth)} 등록된 일정이 없습니다.`;
   };
 
   return (

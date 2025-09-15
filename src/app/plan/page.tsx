@@ -11,7 +11,8 @@ import ScopeSelectionModal from "@/components/ScopeSelectionModal";
 import ConfirmModal from "@/components/ConfirmModal";
 import SummaryModal from "@/components/SummaryModal";
 import { Event, Category, Scope } from "@/types/event";
-import { getEvents, getCategory, deleteEvent, checkDailyLogin, getTodaySummary, LocationData } from "@/api/services/plan";
+import { getEvents, getCategory, deleteEvent, getTodaySummary, LocationData } from "@/api/services/plan";
+import { checkDailyLogin } from "@/api/services/auth";
 import { getCurrentMonthString } from "@/utils/date";
 import { getWeatherGridCoords } from "@/utils/weatherGrid";
 import { useToast } from "@/components/ToastProvider";
@@ -40,6 +41,7 @@ export default function PlanPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSummaryModalOpen, setIsSummaryModalOpen] = useState(false);
+  const [resolvedLocation, setResolvedLocation] = useState<LocationData | null>(null);
   
   const selectedScopeRef = useRef<Scope>('ALL');
 
@@ -49,23 +51,26 @@ export default function PlanPage() {
   const buildKey = (e: Event) => 
     `${e.title}|${e.category.id}|${e.startTime}|${e.endTime}`;
 
-  const getLocation = (): Promise<GeolocationPosition> => {
+  const getGeolocationOnce = (options?: PositionOptions): Promise<GeolocationPosition> => {
     return new Promise((resolve, reject) => {
       if (!navigator.geolocation) {
         reject('Geolocation is not supported by your browser');
         return;
       }
-      
-      navigator.geolocation.getCurrentPosition(
-        resolve,
-        reject,
-        {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 60000
-        }
-      );
+      navigator.geolocation.getCurrentPosition(resolve, reject, options);
     });
+  };
+
+  const getLocation = async (): Promise<GeolocationPosition> => {
+    try {
+      return await getGeolocationOnce({ enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 });
+    } catch (err: any) {
+      try {
+        return await getGeolocationOnce({ enableHighAccuracy: false, timeout: 15000, maximumAge: 600000 });
+      } catch (err2) {
+        throw err2 || err;
+      }
+    }
   };
 
   const getWeatherLocationInfo = async (lat: number, lon: number): Promise<{locationName: string, nx: number, ny: number}> => {
@@ -104,7 +109,6 @@ export default function PlanPage() {
     }
   };
 
-  // Data loading
   const loadData = async () => {
     if (!currentMonth) return;
     
@@ -141,7 +145,6 @@ export default function PlanPage() {
     }
   };
 
-  // View management
   const resetView = () => {
     setSelectedDate(null);
     setViewMode('list');
@@ -178,7 +181,6 @@ export default function PlanPage() {
     resetView();
   };
 
-  // Modal management
   const handleOpenModal = () => setIsModalOpen(true);
   const handleCloseModal = () => setIsModalOpen(false);
 
@@ -242,7 +244,7 @@ export default function PlanPage() {
       setPendingDeleteScope(scope);
       setIsScopeModalOpen(false);
       const scopeText = scope === 'ALL' ? '반복 일정 전체' : 
-                       scope === 'THIS_AND_FUTURE' ? '이 일정 이후의 반복 일정' : '이 일정만';
+                      scope === 'THIS_AND_FUTURE' ? '이 일정 이후의 반복 일정' : '이 일정만';
       setConfirmTitle('일정 삭제');
       setConfirmDesc(`선택한 범위: ${scopeText}\n삭제 후에는 복구할 수 없습니다.\n정말 삭제하시겠어요?`);
       setIsConfirmOpen(true);
@@ -258,7 +260,6 @@ export default function PlanPage() {
     }
   };
 
-  // Event deletion logic
   const handleConfirmDelete = () => {
     if (!pendingDeleteEvent) { 
       setIsConfirmOpen(false); 
@@ -307,7 +308,6 @@ export default function PlanPage() {
       return prev;
     });
 
-    // Server deletion request
     (async () => {
       try {
         const targetTime = (scope === 'THIS' || scope === 'THIS_AND_FUTURE') ? `${pendingDeleteEvent.startTime}` : undefined;
@@ -326,7 +326,6 @@ export default function PlanPage() {
     })();
   };
 
-  // Event submission
   const handleSubmitEvent = async (createdEvents: Event[]) => {
     try {
       if (!createdEvents || createdEvents.length === 0) return;
@@ -383,9 +382,7 @@ export default function PlanPage() {
                   if (!isNaN(pivot.getTime()) && !isNaN(cur.getTime()) && cur >= pivot) {
                     return false;
                   }
-                } catch {
-                  // Ignore date parsing errors
-                }
+                } catch {}
               }
             } else if (scopeSnapshot === 'THIS') {
               if (isSeriesMember) {
@@ -435,10 +432,8 @@ export default function PlanPage() {
     }
   };
 
-  // Effects
   useEffect(() => {
     const token = getAccessToken();
-    console.log('token', token);
     if (!token) {
       router.replace("/?loginRequired=1");
     }
@@ -454,13 +449,39 @@ export default function PlanPage() {
 
   const requestLocationPermission = async (): Promise<{lat: number, lon: number} | null> => {
     try {
-      const position = await getLocation();
-      return {
+      const perm = (navigator as any).permissions?.query ? await (navigator as any).permissions.query({ name: 'geolocation' as any }) : null;
+      if (perm && perm.state === 'denied') {
+        return null;
+      }
+
+      let position: GeolocationPosition | null = null;
+      try {
+        position = await getLocation();
+      } catch (e) {
+        await new Promise(r => setTimeout(r, 1200));
+        position = await getLocation();
+      }
+      const coords = {
         lat: position.coords.latitude,
         lon: position.coords.longitude
       };
+
+      try {
+        localStorage.setItem('pm:lastLocation', JSON.stringify({ ...coords, ts: Date.now() }));
+      } catch {}
+
+      return coords;
     } catch (error) {
-      // 위치 정보 거부 또는 오류 발생
+      try {
+        const cached = localStorage.getItem('pm:lastLocation');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed && typeof parsed.lat === 'number' && typeof parsed.lon === 'number') {
+            return { lat: parsed.lat, lon: parsed.lon };
+          }
+        }
+      } catch {}
+
       return null;
     }
   };
@@ -469,41 +490,45 @@ export default function PlanPage() {
     const coords = await requestLocationPermission();
     
     if (!coords) {
-      // 위치 정보를 거부한 경우 기본 위치(서울) 사용
-      // 서울의 기상청 격자 좌표: nx=60, ny=127
-      const defaultLocation = {
-        cityName: '서울특별시',
-        nx: 60,
-        ny: 127
-      };
-      
+      const defaultLocation = { cityName: '서울특별시', nx: 60, ny: 127 };
+      try { showToast('현재 위치를 가져오지 못해 서울로 설정했어요', 'info'); } catch {}
       return defaultLocation;
     }
     
     const weatherInfo = await getWeatherLocationInfo(coords.lat, coords.lon);
-    return {
-      cityName: weatherInfo.locationName,
-      nx: weatherInfo.nx,
-      ny: weatherInfo.ny
-    };
+    const isValidNumber = (v: any) => typeof v === 'number' && isFinite(v) && v > 0;
+    const resolved = isValidNumber(weatherInfo.nx) && isValidNumber(weatherInfo.ny)
+      ? {
+          cityName: weatherInfo.locationName || '서울특별시',
+          nx: weatherInfo.nx,
+          ny: weatherInfo.ny
+        }
+      : { cityName: '서울특별시', nx: 60, ny: 127 };
+    return resolved;
   };
 
   useEffect(() => {
-    const checkFirstLoginAndLocation = async () => {
+    (async () => {
       try {
-        const dailyLoginResponse = await checkDailyLogin();
-
-        if (!dailyLoginResponse.firstLoginToday) {
+        const login = await checkDailyLogin();
+        if (login.firstLoginToday) {
           const locationData = await handleLocationRequest();
-          await getTodaySummary(locationData);
+          setResolvedLocation(locationData);
+          setIsSummaryModalOpen(true);
+          return;
         }
-      } catch (err) {
-        // Silent fail for login check
+        const locationData = await handleLocationRequest();
+        setResolvedLocation(locationData);
+        await getTodaySummary(locationData);
+      } catch (e) {
+        const seoul = { cityName: '서울특별시', nx: 60, ny: 127 };
+        try {
+          await getTodaySummary(seoul);
+        } catch {}
       }
-    };
-
-    checkFirstLoginAndLocation();
+    })();
   }, []);
+
 
   return (
     <>
@@ -595,6 +620,7 @@ export default function PlanPage() {
       <SummaryModal
         isOpen={isSummaryModalOpen}
         onClose={() => setIsSummaryModalOpen(false)}
+        locationData={resolvedLocation || undefined}
       />
     </>
   );
