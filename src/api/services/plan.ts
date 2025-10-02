@@ -7,6 +7,18 @@ export interface LocationData {
   ny: number;
 }
 
+export interface HourlyWeatherDto {
+  time: string;
+  description: string;
+  temperature: number;
+}
+
+export interface WeatherSummaryDto {
+  sky: string;
+  summary: string;
+  hourlyWeathers: HourlyWeatherDto[];
+}
+
 
 export const createEvent = async (payload: CreateEventRequest): Promise<Event[]> => {
   const { data } = await authenticatedClient.post('/events', payload);
@@ -38,8 +50,8 @@ export const getCategory = async (): Promise<Category[]> => {
 };
 
 
-export const getTodaySummary = async (locationData?: LocationData): Promise<string> => {
-  let url = '/summary/today';
+export const getTodayWeatherSummary = async (locationData?: LocationData): Promise<WeatherSummaryDto> => {
+  let url = '/summary/today/weather';
 
   let params: URLSearchParams | null = null;
   if (locationData) {
@@ -55,6 +67,11 @@ export const getTodaySummary = async (locationData?: LocationData): Promise<stri
   }
 
   const { data } = await authenticatedClient.get(url);
+  return data;
+};
+
+export const getTodayScheduleSummary = async (): Promise<any> => {
+  const { data } = await authenticatedClient.get('/summary/today/event');
   return data;
 };
 

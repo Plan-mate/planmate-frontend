@@ -11,7 +11,7 @@ import ScopeSelectionModal from "@/components/ScopeSelectionModal";
 import ConfirmModal from "@/components/ConfirmModal";
 import SummaryModal from "@/components/SummaryModal";
 import { Event, Category, Scope } from "@/types/event";
-import { getEvents, getCategory, deleteEvent, getTodaySummary, LocationData } from "@/api/services/plan";
+import { getEvents, getCategory, deleteEvent, LocationData } from "@/api/services/plan";
 import { checkDailyLogin } from "@/api/services/auth";
 import { getCurrentMonthString } from "@/utils/date";
 import { getWeatherGridCoords } from "@/utils/weatherGrid";
@@ -508,25 +508,28 @@ export default function PlanPage() {
   };
 
   useEffect(() => {
+    let isMounted = true;
+    
     (async () => {
       try {
         const login = await checkDailyLogin();
-        if (login.firstLoginToday) {
-          const locationData = await handleLocationRequest();
-          setResolvedLocation(locationData);
-          setIsSummaryModalOpen(true);
-          return;
-        }
+        if (!isMounted) return;
+        
         const locationData = await handleLocationRequest();
+        if (!isMounted) return;
         setResolvedLocation(locationData);
-        await getTodaySummary(locationData);
+        
+        if (!login.firstLoginToday) {
+          setIsSummaryModalOpen(true);
+        }
       } catch (e) {
-        const seoul = { cityName: '서울특별시', nx: 60, ny: 127 };
-        try {
-          await getTodaySummary(seoul);
-        } catch {}
+        console.error('초기화 중 오류:', e);
       }
     })();
+    
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
 
