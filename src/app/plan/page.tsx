@@ -10,8 +10,9 @@ import ScheduleModal from "@/components/ScheduleModal";
 import ScopeSelectionModal from "@/components/ScopeSelectionModal";
 import ConfirmModal from "@/components/ConfirmModal";
 import SummaryModal from "@/components/SummaryModal";
+import RecommendModal from "@/components/RecommendModal";
 import { Event, Category, Scope } from "@/types/event";
-import { getEvents, getCategory, deleteEvent, LocationData } from "@/api/services/plan";
+import { getEvents, getCategory, deleteEvent, LocationData, getRecommendations, RecommendEventReqDto } from "@/api/services/plan";
 import { checkDailyLogin } from "@/api/services/auth";
 import { getCurrentMonthString } from "@/utils/date";
 import { getWeatherGridCoords } from "@/utils/weatherGrid";
@@ -42,8 +43,15 @@ export default function PlanPage() {
   const [error, setError] = useState<string | null>(null);
   const [isSummaryModalOpen, setIsSummaryModalOpen] = useState(false);
   const [resolvedLocation, setResolvedLocation] = useState<LocationData | null>(null);
+  const [isRecommendOpen, setIsRecommendOpen] = useState(false);
+  const [isRecommendLoading, setIsRecommendLoading] = useState(false);
+  const [recommendations, setRecommendations] = useState<RecommendEventReqDto[] | null>(null);
+  const [pendingCreatedEvents, setPendingCreatedEvents] = useState<Event[]>([]);
+  const [clickedDateForAdd, setClickedDateForAdd] = useState<string | null>(null);
+  const [recommendTargetDate, setRecommendTargetDate] = useState<string | null>(null);
   
   const selectedScopeRef = useRef<Scope>('ALL');
+  const summaryShownRef = useRef<boolean>(false);
 
   const isOriginalRecurring = (ev: Event): boolean => 
     ev.isRecurring === true && (ev.originalEventId === null || ev.originalEventId === undefined);
@@ -181,8 +189,54 @@ export default function PlanPage() {
     resetView();
   };
 
-  const handleOpenModal = () => setIsModalOpen(true);
-  const handleCloseModal = () => setIsModalOpen(false);
+  const handleOpenModal = () => {
+    if (!clickedDateForAdd && selectedDate) {
+      setClickedDateForAdd(selectedDate);
+    }
+    setIsModalOpen(true);
+  };
+
+  const handleFirstScheduleAdd = async (forceToday: boolean = false) => {
+    const now = new Date();
+    const koreaTime = new Date(now.getTime() + (9 * 60 * 60 * 1000));
+    const today = koreaTime.toISOString().split('T')[0];
+    const targetDate = forceToday ? today : (selectedDate || today);
+    
+    setRecommendTargetDate(targetDate);
+    setIsRecommendOpen(true);
+    setIsRecommendLoading(true);
+    setPendingCreatedEvents([]);
+    try {
+      const data = await getRecommendations(resolvedLocation || undefined, targetDate);
+      setRecommendations(Array.isArray(data) ? data : []);
+    } catch (e) {
+      try { showToast('추천 요청에 실패했어요. 잠시 후 다시 시도해주세요.', 'error'); } catch {}
+      setRecommendations([]);
+    } finally {
+      setIsRecommendLoading(false);
+    }
+  };
+
+  const handleRecommendEventsCreated = (createdEvents: Event[]) => {
+    setPendingCreatedEvents(prev => [...prev, ...createdEvents]);
+  };
+
+  const handleRecommendModalClose = () => {
+    if (pendingCreatedEvents.length > 0) {
+      setEvents(prev => [...prev, ...pendingCreatedEvents]);
+      setPendingCreatedEvents([]);
+    }
+    setIsRecommendOpen(false);
+    setRecommendTargetDate(null);
+  };
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setClickedDateForAdd(null);
+  };
+  
+  const handleDateClickForAdd = (date: string) => {
+    setClickedDateForAdd(date);
+  };
 
   const handleDeleteEvent = (event: Event) => {
     if (!event.isRecurring) {
@@ -450,27 +504,58 @@ export default function PlanPage() {
   const requestLocationPermission = async (): Promise<{lat: number, lon: number} | null> => {
     try {
       const perm = (navigator as any).permissions?.query ? await (navigator as any).permissions.query({ name: 'geolocation' as any }) : null;
-      if (perm && perm.state === 'denied') {
+      
+      if (perm && perm.state !== 'granted') {
+        try {
+          const cached = localStorage.getItem('pm:lastLocation');
+          if (cached) {
+            const parsed = JSON.parse(cached);
+            if (parsed && typeof parsed.lat === 'number' && typeof parsed.lon === 'number') {
+              return { lat: parsed.lat, lon: parsed.lon };
+            }
+          }
+        } catch {}
         return null;
       }
+
+      try {
+        const lastFailStr = localStorage.getItem('pm:lastGeoFailTs');
+        if (lastFailStr) {
+          const lastFail = Number(lastFailStr);
+          if (Number.isFinite(lastFail) && Date.now() - lastFail < 5 * 60 * 1000) {
+            const cached = localStorage.getItem('pm:lastLocation');
+            if (cached) {
+              const parsed = JSON.parse(cached);
+              if (parsed && typeof parsed.lat === 'number' && typeof parsed.lon === 'number') {
+                return { lat: parsed.lat, lon: parsed.lon };
+              }
+            }
+            return null;
+          }
+        }
+      } catch {}
 
       let position: GeolocationPosition | null = null;
       try {
         position = await getLocation();
       } catch (e) {
-        await new Promise(r => setTimeout(r, 1200));
-        position = await getLocation();
+        position = null;
+        try { localStorage.setItem('pm:lastGeoFailTs', String(Date.now())); } catch {}
       }
       const coords = {
-        lat: position.coords.latitude,
-        lon: position.coords.longitude
+        lat: position?.coords.latitude as number,
+        lon: position?.coords.longitude as number
       };
 
       try {
         localStorage.setItem('pm:lastLocation', JSON.stringify({ ...coords, ts: Date.now() }));
       } catch {}
 
-      return coords;
+      if (Number.isFinite(coords.lat) && Number.isFinite(coords.lon)) {
+        return coords as {lat: number, lon: number};
+      }
+      try { localStorage.setItem('pm:lastGeoFailTs', String(Date.now())); } catch {}
+      return null;
     } catch (error) {
       try {
         const cached = localStorage.getItem('pm:lastLocation');
@@ -512,19 +597,20 @@ export default function PlanPage() {
     
     (async () => {
       try {
-        const login = await checkDailyLogin();
+        const login = await checkDailyLogin();        
         if (!isMounted) return;
         
         const locationData = await handleLocationRequest();
         if (!isMounted) return;
         setResolvedLocation(locationData);
         
-        if (!login.firstLoginToday) {
-          setIsSummaryModalOpen(true);
-        }
-      } catch (e) {
-        console.error('초기화 중 오류:', e);
-      }
+        try {
+            if (login.firstLoginToday) {
+              setIsSummaryModalOpen(true);
+              summaryShownRef.current = true;
+          }
+        } catch {}
+      } catch (e) {}
     })();
     
     return () => {
@@ -544,6 +630,7 @@ export default function PlanPage() {
               selectedDate={selectedDate}
               onDateSelect={handleDateSelect}
               onMonthChange={handleMonthChange}
+              onDateClickForAdd={handleDateClickForAdd}
             />
           </div>
           <div className="schedule-section">
@@ -577,6 +664,7 @@ export default function PlanPage() {
                 onViewAllEvents={handleViewAllEvents}
                 onEditEvent={handleEditEvent}
                 onDeleteEvent={handleDeleteEvent}
+                onFirstScheduleAdd={handleFirstScheduleAdd}
               />
             )}
           </div>
@@ -591,6 +679,7 @@ export default function PlanPage() {
         isOpen={isModalOpen}
         onClose={handleCloseModal}
         onSubmit={handleSubmitEvent}
+        initialDate={clickedDateForAdd}
       />
 
       <ScheduleModal
@@ -624,6 +713,23 @@ export default function PlanPage() {
         isOpen={isSummaryModalOpen}
         onClose={() => setIsSummaryModalOpen(false)}
         locationData={resolvedLocation || undefined}
+        onRecommend={() => handleFirstScheduleAdd(true)}
+      />
+
+      <RecommendModal
+        isOpen={isRecommendOpen}
+        onClose={handleRecommendModalClose}
+        locationData={resolvedLocation || undefined}
+        categories={categories}
+        recommendations={recommendations || []}
+        loading={isRecommendLoading}
+        targetDate={recommendTargetDate}
+        onEventsCreated={handleRecommendEventsCreated}
+        onReload={async () => {
+          await reloadEvents();
+          setIsSummaryModalOpen(false);
+          handleRecommendModalClose();
+        }}
       />
     </>
   );

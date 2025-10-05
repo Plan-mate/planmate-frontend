@@ -43,7 +43,6 @@ const refreshToken = async (): Promise<string> => {
         setTokens(data.accessToken, data.refreshToken);
         return data.accessToken;
     } catch (error) {
-        console.error('Error refreshing token:', error);
         handleTokenFailure();
         return Promise.reject(error);
     }

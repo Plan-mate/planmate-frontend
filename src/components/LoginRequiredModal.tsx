@@ -15,7 +15,6 @@ export default function LoginRequiredModal({ open, onClose }: Props) {
     const clientId = process.env.NEXT_PUBLIC_KAKAO_REST_API_KEY;
     const redirectUri = process.env.NEXT_PUBLIC_KAKAO_REDIRECT_URI;
     if (!clientId || !redirectUri) {
-      console.error("Kakao env vars are missing");
       return;
     }
     const authUrl = `https://kauth.kakao.com/oauth/authorize?response_type=code&client_id=${clientId}&redirect_uri=${redirectUri}`;

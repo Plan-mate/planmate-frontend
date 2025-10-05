@@ -8,11 +8,12 @@ interface CalendarProps {
   selectedDate: string | null;
   onDateSelect: (date: string) => void;
   onMonthChange?: (month: string) => void;
+  onDateClickForAdd?: (date: string) => void;
 }
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
-export default function Calendar({ events, selectedDate, onDateSelect, onMonthChange }: CalendarProps) {
+export default function Calendar({ events, selectedDate, onDateSelect, onMonthChange, onDateClickForAdd }: CalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [pendingMonthChange, setPendingMonthChange] = useState<string | null>(null);
 
@@ -50,7 +51,6 @@ export default function Calendar({ events, selectedDate, onDateSelect, onMonthCh
       const eventEndDate = new Date(event.endTime.split('T')[0]);
       const currentDate = new Date(dateStr);
       
-      // 정확한 날짜 매칭 (시간 부분 제외)
       return currentDate >= eventStartDate && currentDate <= eventEndDate;
     });
   };
@@ -172,7 +172,12 @@ export default function Calendar({ events, selectedDate, onDateSelect, onMonthCh
               <div
                 key={index}
                 className={`calendar-day ${!isCurrentMonth(date) ? 'other-month' : ''} ${isToday(date) ? 'today' : ''} ${isSelected ? 'selected' : ''}`}
-                onClick={() => onDateSelect(dateStr)}
+                onClick={() => {
+                  onDateSelect(dateStr);
+                  if (onDateClickForAdd) {
+                    onDateClickForAdd(dateStr);
+                  }
+                }}
               >
                 <span className="day-number">{date.getDate()}</span>
                 {dayEvents.length > 0 && renderEventIndicators(dayEvents, dateStr)}

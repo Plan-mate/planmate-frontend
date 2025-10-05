@@ -15,6 +15,7 @@ interface ScheduleModalProps {
   editEvent?: Event;
   isEditMode?: boolean;
   selectedScope?: Scope;
+  initialDate?: string | null;
 }
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
@@ -78,14 +79,14 @@ const INITIAL_FORM_DATA: CreateEventRequest = {
   isRecurring: false,
 };
 
-export default function ScheduleModal({ isOpen, onClose, onSubmit, categories, editEvent, isEditMode = false, selectedScope = 'ALL' }: ScheduleModalProps) {
+export default function ScheduleModal({ isOpen, onClose, onSubmit, categories, editEvent, isEditMode = false, selectedScope = 'ALL', initialDate }: ScheduleModalProps) {
   const { showToast } = useToast();
   const [formData, setFormData] = useState<CreateEventRequest>(INITIAL_FORM_DATA);
   const [recurrenceType, setRecurrenceType] = useState<'DAILY' | 'WEEKLY' | 'MONTHLY'>('DAILY');
   const [selectedDays, setSelectedDays] = useState<number[]>([]);
   const [selectedDates, setSelectedDates] = useState<number[]>([]);
   const [recurrenceEndDate, setRecurrenceEndDate] = useState<string>("");
-  const [isAllDay, setIsAllDay] = useState<boolean>(true);
+  const [isAllDay, setIsAllDay] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [categoriesLocal, setCategoriesLocal] = useState<Category[]>(categories ?? []);
   const [isLoadingCategories, setIsLoadingCategories] = useState(false);
@@ -136,7 +137,7 @@ export default function ScheduleModal({ isOpen, onClose, onSubmit, categories, e
     } else {
       if (!recurrenceEndDate) {
         const endDate = new Date(formData.endTime);
-        endDate.setDate(endDate.getDate() + 30); // 기본 30일 후 종료
+        endDate.setDate(endDate.getDate() + 30);
         setRecurrenceEndDate(formatDate(endDate));
       }
     }
@@ -163,6 +164,35 @@ export default function ScheduleModal({ isOpen, onClose, onSubmit, categories, e
     })();
     return () => { mounted = false; };
   }, [isOpen, categories]);
+
+  useEffect(() => {
+    if (isOpen && !isEditMode) {
+      const baseDateStr = initialDate ?? todayStr;
+      const now = new Date();
+      const nextHour = new Date(now);
+      nextHour.setMinutes(0, 0, 0);
+      nextHour.setHours(nextHour.getHours() + 1);
+      let proposedStartHour = nextHour.getHours();
+      let startTime: string;
+      let endTime: string;
+      if (proposedStartHour >= 23) {
+        startTime = `${baseDateStr}T23:00`;
+        endTime = `${baseDateStr}T23:59`;
+      } else {
+        const startHourStr = String(proposedStartHour).padStart(2, '0');
+        startTime = `${baseDateStr}T${startHourStr}:00`;
+        const endHourStr = String(proposedStartHour + 1).padStart(2, '0');
+        endTime = `${baseDateStr}T${endHourStr}:00`;
+      }
+
+      setIsAllDay(false);
+      setFormData(prev => ({
+        ...prev,
+        startTime,
+        endTime
+      }));
+    }
+  }, [isOpen, isEditMode, initialDate]);
 
   useEffect(() => {
     if (isOpen && isEditMode && editEvent) {
@@ -210,12 +240,6 @@ export default function ScheduleModal({ isOpen, onClose, onSubmit, categories, e
       }
       setIsInitialized(true);
     } else if (isOpen && !isEditMode) {
-      setFormData(INITIAL_FORM_DATA);
-      setIsAllDay(true);
-      setRecurrenceType('DAILY');
-      setSelectedDays([]);
-      setSelectedDates([]);
-      setRecurrenceEndDate("");
       setIsInitialized(true);
     }
   }, [isOpen, isEditMode, editEvent]);
@@ -247,15 +271,31 @@ export default function ScheduleModal({ isOpen, onClose, onSubmit, categories, e
     const baseDate = formData.startTime ? formData.startTime.slice(0,10) : todayStr;
     if (checked) {
       setFormData(prev => ({ ...prev, startTime: `${baseDate}T00:00`, endTime: `${baseDate}T23:59` }));
+    } else {
+      const now = new Date();
+      const nextHour = new Date(now);
+      nextHour.setMinutes(0, 0, 0);
+      nextHour.setHours(nextHour.getHours() + 1);
+      let proposedStartHour = nextHour.getHours();
+      let startTime: string;
+      let endTime: string;
+      if (proposedStartHour >= 23) {
+        startTime = `${baseDate}T23:00`;
+        endTime = `${baseDate}T23:59`;
+      } else {
+        const startHourStr = String(proposedStartHour).padStart(2, '0');
+        startTime = `${baseDate}T${startHourStr}:00`;
+        const endHourStr = String(proposedStartHour + 1).padStart(2, '0');
+        endTime = `${baseDate}T${endHourStr}:00`;
+      }
+      setFormData(prev => ({ ...prev, startTime, endTime }));
     }
   };
 
   const handleAllDayDateChange = (dateValue: string, which: 'start' | 'end') => {
     if (!dateValue) return;
     if (which === 'start') {
-      let endDate = formData.endTime ? formData.endTime.slice(0,10) : dateValue;
-      if (new Date(endDate) < new Date(dateValue)) endDate = dateValue;
-      setFormData(prev => ({ ...prev, startTime: `${dateValue}T00:00`, endTime: `${endDate}T23:59` }));
+      setFormData(prev => ({ ...prev, startTime: `${dateValue}T00:00`, endTime: `${dateValue}T23:59` }));
     } else {
       let endDate = dateValue;
       const startDate = formData.startTime ? formData.startTime.slice(0,10) : dateValue;
@@ -414,7 +454,6 @@ export default function ScheduleModal({ isOpen, onClose, onSubmit, categories, e
       
       handleClose();
     } catch (err) {
-      console.error(err);
       alert(isEditMode ? '일정 수정에 실패했습니다. 잠시 후 다시 시도해주세요.' : '일정 생성에 실패했습니다. 잠시 후 다시 시도해주세요.');
     } finally {
       setIsSubmitting(false);

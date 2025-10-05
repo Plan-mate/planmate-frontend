@@ -75,6 +75,37 @@ export const getTodayScheduleSummary = async (): Promise<any> => {
   return data;
 };
 
-export const getRecommendations = async (): Promise<void> => {
-  await authenticatedClient.get('/summary/recommend');
+export interface RecommendEventReqDto {
+  categoryId: number;
+  description: string;
+  startTime: string;
+  endTime: string;
+  title: string;
+  isRecurring: boolean;
+  recurrenceRule?: any | null;
+}
+
+export const getRecommendations = async (locationData?: LocationData, targetDate?: string): Promise<RecommendEventReqDto[]> => {
+  let url = '/summary/recommend';
+
+  let params: URLSearchParams | null = null;
+  if (locationData) {
+    params = new URLSearchParams({
+      locationName: locationData.cityName,
+      nx: locationData.nx.toString(),
+      ny: locationData.ny.toString()
+    });
+  }
+
+  if (targetDate) {
+    if (!params) params = new URLSearchParams();
+    params.append('targetDate', targetDate);
+  }
+
+  if (params) {
+    url += `?${params.toString()}`;
+  }
+
+  const { data } = await authenticatedClient.get(url);
+  return data as RecommendEventReqDto[];
 };

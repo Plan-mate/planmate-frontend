@@ -16,6 +16,7 @@ interface ScheduleListProps {
   onViewAllEvents: () => void;
   onEditEvent?: (event: Event, scope?: Scope) => void;
   onDeleteEvent?: (event: Event) => void;
+  onFirstScheduleAdd?: () => void;
 }
 
 export default function ScheduleList({
@@ -29,8 +30,32 @@ export default function ScheduleList({
   onBackToList,
   onViewAllEvents,
   onEditEvent,
-  onDeleteEvent
+  onDeleteEvent,
+  onFirstScheduleAdd
 }: ScheduleListProps) {
+  const isPastEvent = (event: Event) => {
+    const today = new Date();
+    const eventEndDate = new Date(event.endTime.split('T')[0]);
+    return eventEndDate < today;
+  };
+
+  const isEventIncludingToday = (event: Event) => {
+    const today = new Date();
+    const eventStartDate = new Date(event.startTime.split('T')[0]);
+    const eventEndDate = new Date(event.endTime.split('T')[0]);
+    return eventStartDate <= today && eventEndDate >= today;
+  };
+
+  const canEditEvent = (event: Event) => {
+    if (isPastEvent(event) && isEventIncludingToday(event)) {
+      return true;
+    }
+    if (isPastEvent(event)) {
+      return false;
+    }
+    return true;
+  };
+
   const getEventsForDate = (date: string) => {
     return events.filter(event => {
       const eventStartDate = new Date(event.startTime.split('T')[0]);
@@ -62,13 +87,15 @@ export default function ScheduleList({
           </button>
           <h3 className="detail-title">{formatDisplayDate(selectedEvent.startTime)}</h3>
           <div className="detail-actions-top">
-            <button 
-              className="pm-btn pm-btn--icon" 
-              title="수정"
-              onClick={(e) => { e.stopPropagation(); onEditEvent?.(selectedEvent); }}
-            >
-              ✏
-            </button>
+            {canEditEvent(selectedEvent) && (
+              <button 
+                className="pm-btn pm-btn--icon" 
+                title="수정"
+                onClick={(e) => { e.stopPropagation(); onEditEvent?.(selectedEvent); }}
+              >
+                ✏
+              </button>
+            )}
             <button className="pm-btn pm-btn--icon" title="삭제" onClick={(e) => { e.stopPropagation(); onDeleteEvent?.(selectedEvent); }}>
               ✕
             </button>
@@ -158,11 +185,11 @@ export default function ScheduleList({
         <div className="empty-state">
           <div className="empty-icon">📅</div>
           <p className="empty-text">{getEmptyStateMessage()}</p>
-          <button className="empty-action-btn">첫 일정 등록하기</button>
+          <button className="empty-action-btn" onClick={onFirstScheduleAdd}>첫 일정 등록하기</button>
         </div>
       ) : (
         <div className="schedule-items">
-          {filteredEvents.map((event, index) => (
+          {filteredEvents.map((event: Event, index: number) => (
             <div
               key={event.id || `event-${index}`}
               className="schedule-item"
