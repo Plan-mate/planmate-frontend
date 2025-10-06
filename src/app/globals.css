@@ -31,7 +31,6 @@ body {
   text-size-adjust: 100%;
 }
 
-/* iOS Safari 가로 스크롤 방지 및 컨테이너 기본 규칙 */
 * { box-sizing: border-box; }
 img, svg, video, canvas { max-width: 100%; height: auto; }
 a { -webkit-tap-highlight-color: transparent; }

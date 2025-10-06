@@ -196,11 +196,19 @@ export default function PlanPage() {
     setIsModalOpen(true);
   };
 
-  const handleFirstScheduleAdd = async (forceToday: boolean = false) => {
+  const handleFirstScheduleAdd = async (dateFromList?: string | null, forceToday: boolean = false) => {
     const now = new Date();
     const koreaTime = new Date(now.getTime() + (9 * 60 * 60 * 1000));
     const today = koreaTime.toISOString().split('T')[0];
-    const targetDate = forceToday ? today : (selectedDate || today);
+    
+    let targetDate: string;
+    if (forceToday) {
+      targetDate = today;
+    } else if (dateFromList) {
+      targetDate = dateFromList;
+    } else {
+      targetDate = selectedDate || today;
+    }
     
     setRecommendTargetDate(targetDate);
     setIsRecommendOpen(true);
@@ -605,7 +613,7 @@ export default function PlanPage() {
         setResolvedLocation(locationData);
         
         try {
-            if (login.firstLoginToday) {
+            if (!login.firstLoginToday) {
               setIsSummaryModalOpen(true);
               summaryShownRef.current = true;
           }
@@ -664,7 +672,7 @@ export default function PlanPage() {
                 onViewAllEvents={handleViewAllEvents}
                 onEditEvent={handleEditEvent}
                 onDeleteEvent={handleDeleteEvent}
-                onFirstScheduleAdd={handleFirstScheduleAdd}
+                onFirstScheduleAdd={(date) => handleFirstScheduleAdd(date)}
               />
             )}
           </div>
@@ -713,7 +721,7 @@ export default function PlanPage() {
         isOpen={isSummaryModalOpen}
         onClose={() => setIsSummaryModalOpen(false)}
         locationData={resolvedLocation || undefined}
-        onRecommend={() => handleFirstScheduleAdd(true)}
+        onRecommend={() => handleFirstScheduleAdd(null, true)}
       />
 
       <RecommendModal

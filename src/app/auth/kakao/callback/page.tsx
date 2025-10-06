@@ -28,7 +28,7 @@ export default function KakaoCallback() {
     const fetchData = async () => {
       try {
         await login({ token: authCode })
-        document.cookie = `pm_auth=1; path=/; max-age=${60 * 60 * 24 * 7}`; // 7일 유지
+        document.cookie = `pm_auth=1; path=/; max-age=${60 * 60 * 24 * 7}`;
         window.location.href = '/';
       } catch (err) {}
     };

@@ -16,7 +16,7 @@ interface ScheduleListProps {
   onViewAllEvents: () => void;
   onEditEvent?: (event: Event, scope?: Scope) => void;
   onDeleteEvent?: (event: Event) => void;
-  onFirstScheduleAdd?: () => void;
+  onFirstScheduleAdd?: (selectedDate: string | null) => void;
 }
 
 export default function ScheduleList({
@@ -35,24 +35,25 @@ export default function ScheduleList({
 }: ScheduleListProps) {
   const isPastEvent = (event: Event) => {
     const today = new Date();
-    const eventEndDate = new Date(event.endTime.split('T')[0]);
-    return eventEndDate < today;
-  };
-
-  const isEventIncludingToday = (event: Event) => {
-    const today = new Date();
-    const eventStartDate = new Date(event.startTime.split('T')[0]);
-    const eventEndDate = new Date(event.endTime.split('T')[0]);
-    return eventStartDate <= today && eventEndDate >= today;
+    const todayStr = today.toISOString().split('T')[0];
+    const eventEndDateStr = event.endTime.split('T')[0];
+    return eventEndDateStr < todayStr;
   };
 
   const canEditEvent = (event: Event) => {
-    if (isPastEvent(event) && isEventIncludingToday(event)) {
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+    const eventStartDateStr = event.startTime.split('T')[0];
+    const eventEndDateStr = event.endTime.split('T')[0];
+    
+    if (eventStartDateStr <= todayStr && eventEndDateStr >= todayStr) {
       return true;
     }
-    if (isPastEvent(event)) {
+    
+    if (eventEndDateStr < todayStr) {
       return false;
     }
+    
     return true;
   };
 
@@ -185,7 +186,7 @@ export default function ScheduleList({
         <div className="empty-state">
           <div className="empty-icon">📅</div>
           <p className="empty-text">{getEmptyStateMessage()}</p>
-          <button className="empty-action-btn" onClick={onFirstScheduleAdd}>첫 일정 등록하기</button>
+          <button className="empty-action-btn" onClick={() => onFirstScheduleAdd?.(selectedDate)}>첫 일정 등록하기</button>
         </div>
       ) : (
         <div className="schedule-items">
