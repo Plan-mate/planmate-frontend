@@ -1,17 +1,6 @@
 import { publicClient, authenticatedClient } from '../client';
 import { setTokens, removeTokens } from '../utils/tokenStorage';
-
-interface LoginCredentials {
-    token: string;
-}
-export interface DailyLoginResponse {
-    firstLoginToday: boolean;
-}
-export interface MeResponse {
-    id: number;
-    nickname: string;
-    profileImage: string;
-}
+import type { LoginCredentials, DailyLoginResponse, MeResponse } from '../types/api.types';
 
 export const getMe = async (): Promise<MeResponse> => {
     const { data } = await authenticatedClient.get<MeResponse>('/user/me');
@@ -19,8 +8,8 @@ export const getMe = async (): Promise<MeResponse> => {
 };
 
 export const login = async (credentials: LoginCredentials) => {
-    const response = await publicClient.post('/auth/kakao', credentials);        
-    setTokens(response.data.accessToken, response.data.refreshToken);
+    const { data } = await publicClient.post('/auth/kakao', credentials);
+    setTokens(data.accessToken, data.refreshToken);
 };
 
 export const logout = async () => {

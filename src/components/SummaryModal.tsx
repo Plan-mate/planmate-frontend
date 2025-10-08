@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { getTodayWeatherSummary, getTodayScheduleSummary, getRecommendations, LocationData, WeatherSummaryDto } from "@/api/services/plan";
+import { getTodayWeatherSummary, getTodayScheduleSummary } from "@/api/services/summary";
+import type { LocationData, WeatherSummaryDto } from "@/api/types/api.types";
 import "@/styles/summaryModal.css";
 interface SummaryResponse {
   weather?: WeatherSummaryDto;

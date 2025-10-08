@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import LogoIcon from "@/components/LogoIcon";
-import { getMe, logout, type MeResponse } from "@/api/services/auth";
+import { getMe, logout } from "@/api/services/auth";
+import type { MeResponse } from "@/api/types/api.types";
 import { getAccessToken } from "@/api/utils/tokenStorage";
 import "@/styles/header.css";
 

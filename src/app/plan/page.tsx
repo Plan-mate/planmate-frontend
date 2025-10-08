@@ -12,8 +12,10 @@ import ConfirmModal from "@/components/ConfirmModal";
 import SummaryModal from "@/components/SummaryModal";
 import RecommendModal from "@/components/RecommendModal";
 import { Event, Category, Scope } from "@/types/event";
-import { getEvents, getCategory, deleteEvent, LocationData, getRecommendations, RecommendEventReqDto } from "@/api/services/plan";
+import { getEvents, getCategory, deleteEvent } from "@/api/services/plan";
+import { getRecommendations } from "@/api/services/summary";
 import { checkDailyLogin } from "@/api/services/auth";
+import type { LocationData, RecommendEventReqDto } from "@/api/types/api.types";
 import { getCurrentMonthString } from "@/utils/date";
 import { getWeatherGridCoords } from "@/utils/weatherGrid";
 import { useToast } from "@/components/ToastProvider";
@@ -613,7 +615,7 @@ export default function PlanPage() {
         setResolvedLocation(locationData);
         
         try {
-            if (!login.firstLoginToday) {
+            if (login.firstLoginToday) {
               setIsSummaryModalOpen(true);
               summaryShownRef.current = true;
           }

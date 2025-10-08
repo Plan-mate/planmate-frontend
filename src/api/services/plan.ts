@@ -1,28 +1,9 @@
 import { authenticatedClient } from '../client';
 import { CreateEventRequest, Event, Category, EventUpdateRequest, Scope } from '@/types/event';
 
-export interface LocationData {
-  cityName: string;
-  nx: number;
-  ny: number;
-}
-
-export interface HourlyWeatherDto {
-  time: string;
-  description: string;
-  temperature: number;
-}
-
-export interface WeatherSummaryDto {
-  sky: string;
-  summary: string;
-  hourlyWeathers: HourlyWeatherDto[];
-}
-
-
 export const createEvent = async (payload: CreateEventRequest): Promise<Event[]> => {
   const { data } = await authenticatedClient.post('/events', payload);
-  return data as Event[];
+  return data;
 };
 
 export const updateEvent = async (payload: EventUpdateRequest): Promise<Event[]> => {
@@ -30,7 +11,7 @@ export const updateEvent = async (payload: EventUpdateRequest): Promise<Event[]>
     scope: payload.scope,
     event: payload.event
   });
-  return data as Event[];
+  return data;
 };
 
 export const deleteEvent = async (eventId: number, scope: Scope, targetTime?: string): Promise<void> => {
@@ -47,65 +28,4 @@ export const getEvents = async (year: number, month: number): Promise<Event[]> =
 export const getCategory = async (): Promise<Category[]> => {
   const { data } = await authenticatedClient.get('/events/category');
   return data;
-};
-
-
-export const getTodayWeatherSummary = async (locationData?: LocationData): Promise<WeatherSummaryDto> => {
-  let url = '/summary/today/weather';
-
-  let params: URLSearchParams | null = null;
-  if (locationData) {
-    params = new URLSearchParams({
-      locationName: locationData.cityName,
-      nx: locationData.nx.toString(),
-      ny: locationData.ny.toString()
-    });
-  }
-
-  if (params) {
-    url += `?${params.toString()}`;
-  }
-
-  const { data } = await authenticatedClient.get(url);
-  return data;
-};
-
-export const getTodayScheduleSummary = async (): Promise<any> => {
-  const { data } = await authenticatedClient.get('/summary/today/event');
-  return data;
-};
-
-export interface RecommendEventReqDto {
-  categoryId: number;
-  description: string;
-  startTime: string;
-  endTime: string;
-  title: string;
-  isRecurring: boolean;
-  recurrenceRule?: any | null;
-}
-
-export const getRecommendations = async (locationData?: LocationData, targetDate?: string): Promise<RecommendEventReqDto[]> => {
-  let url = '/summary/recommend';
-
-  let params: URLSearchParams | null = null;
-  if (locationData) {
-    params = new URLSearchParams({
-      locationName: locationData.cityName,
-      nx: locationData.nx.toString(),
-      ny: locationData.ny.toString()
-    });
-  }
-
-  if (targetDate) {
-    if (!params) params = new URLSearchParams();
-    params.append('targetDate', targetDate);
-  }
-
-  if (params) {
-    url += `?${params.toString()}`;
-  }
-
-  const { data } = await authenticatedClient.get(url);
-  return data as RecommendEventReqDto[];
 };
