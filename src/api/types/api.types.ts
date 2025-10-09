@@ -42,3 +42,13 @@ export interface RecommendEventReqDto {
   recurrenceRule?: any | null;
 }
 
+// Notification 관련 타입
+export interface NotificationDto {
+  id: number;
+  title: string;
+  body: string;
+  read: boolean;
+  triggerTime: string;
+  sentAt: string;
+  status: string;
+}

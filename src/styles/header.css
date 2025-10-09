@@ -39,6 +39,47 @@
   gap: 12px;
 }
 
+.header-container .notification-bell-btn {
+  position: relative;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+  transition: all 0.2s;
+}
+
+.header-container .notification-bell-btn:hover {
+  background: #f5f5f5;
+  color: #333;
+}
+
+.header-container .notification-badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 12px;
+  height: 12px;
+  background: #ef4444;
+  border-radius: 50%;
+  border: 2.5px solid white;
+  animation: pulse 2s infinite;
+  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
 .header-container .profile-image {
   width: 36px;
   height: 36px;
@@ -69,6 +110,9 @@
   .header-container .logo { font-size: 1.1rem; gap: 6px; min-width: 0; }
   .header-container .kakaoBtn { width: auto; justify-content: center; padding: 6px 10px; font-size: 0.9rem; }
   .header-container .user-section { gap: 8px; min-width: 0; }
+  .header-container .notification-bell-btn { padding: 6px; }
+  .header-container .notification-bell-btn svg { width: 28px; height: 28px; }
+  .header-container .notification-badge { width: 10px; height: 10px; top: 4px; right: 4px; }
   .header-container .profile-image { width: 28px; height: 28px; }
   .header-container .nickname { max-width: 32vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .header-container .logoutBtn { padding: 6px 10px; font-size: 0.9rem; }

@@ -14,15 +14,25 @@ export const login = async (credentials: LoginCredentials) => {
 
 export const logout = async () => {
     try {
-        await authenticatedClient.post('/auth/logout');
-    } catch {} 
-    finally {
+        await authenticatedClient.post('/user/logout');
+    } catch (error) {
+        console.error('로그아웃 API 호출 실패:', error);
+    } finally {
         removeTokens();
         document.cookie = 'pm_auth=; path=/; max-age=0';
+        
+        if (typeof window !== 'undefined') {
+            localStorage.removeItem('fcm_token');
+        }
     }
 };
 
 export const checkDailyLogin = async (): Promise<DailyLoginResponse> => {
     const { data } = await authenticatedClient.get('/user/check-daily-login');
+    return data;
+};
+
+export const saveFcmToken = async (fcmToken: string): Promise<string> => {
+    const { data } = await authenticatedClient.post<string>('/user/fcm-token', { fcmToken });
     return data;
 };

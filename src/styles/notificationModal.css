@@ -1,0 +1,223 @@
+.notification-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.3);
+  z-index: 999;
+}
+
+.notification-modal {
+  position: fixed;
+  top: 70px;
+  right: 10px;
+  width: 380px;
+  max-height: 500px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  animation: slideDown 0.2s ease-out;
+  transform-origin: top right;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.notification-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.notification-modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+}
+
+.notification-close-btn {
+  background: none;
+  border: none;
+  font-size: 28px;
+  color: #999;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: all 0.2s;
+  line-height: 1;
+}
+
+.notification-close-btn:hover {
+  background: #f5f5f5;
+  color: #333;
+}
+
+.notification-modal-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
+}
+
+.notification-modal-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.notification-modal-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.notification-modal-content::-webkit-scrollbar-thumb {
+  background: #d0d0d0;
+  border-radius: 3px;
+}
+
+.notification-modal-content::-webkit-scrollbar-thumb:hover {
+  background: #b0b0b0;
+}
+
+.notification-loading {
+  padding: 20px;
+}
+
+.notification-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 20px;
+  color: #999;
+}
+
+.notification-empty svg {
+  width: 40px;
+  height: 40px;
+  margin-bottom: 10px;
+  opacity: 0.5;
+}
+
+.notification-empty p {
+  margin: 0;
+  font-size: 13px;
+}
+
+.notification-list {
+  padding: 8px 0;
+}
+
+.notification-item {
+  display: flex;
+  align-items: flex-start;
+  padding: 16px 20px;
+  border-bottom: 1px solid #f5f5f5;
+  cursor: pointer;
+  transition: background 0.2s;
+  position: relative;
+}
+
+.notification-item:hover {
+  background: #f9f9f9;
+}
+
+.notification-item:last-child {
+  border-bottom: none;
+}
+
+.notification-item.unread {
+  background: #f0f7ff;
+}
+
+.notification-item.unread:hover {
+  background: #e6f2ff;
+}
+
+.notification-icon {
+  flex-shrink: 0;
+  margin-right: 12px;
+  margin-top: 2px;
+}
+
+.notification-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.notification-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.notification-body {
+  font-size: 13px;
+  color: #666;
+  line-height: 1.4;
+  margin-bottom: 6px;
+  word-wrap: break-word;
+}
+
+.notification-time {
+  font-size: 12px;
+  color: #999;
+}
+
+.notification-unread-dot {
+  position: absolute;
+  top: 20px;
+  right: 16px;
+  width: 8px;
+  height: 8px;
+  background: #4A90E2;
+  border-radius: 50%;
+}
+
+@media (max-width: 768px) {
+  .notification-modal {
+    right: 5px;
+    left: 5px;
+    width: auto;
+    max-width: 400px;
+    max-height: 450px;
+    margin: 0 auto;
+  }
+}
+
+@media (max-height: 600px) {
+  .notification-modal {
+    max-height: calc(100vh - 90px);
+  }
+}
+
+@media (min-width: 769px) {
+  .notification-modal {
+    /* 헤더 max-width 900px 기준, 오른쪽 정렬 + 약간의 여백 */
+    right: calc((100vw - 900px) / 2 + 10px);
+  }
+}
+
+@media (min-width: 769px) and (max-width: 920px) {
+  .notification-modal {
+    right: 10px;
+  }
+}
+
