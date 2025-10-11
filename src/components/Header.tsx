@@ -5,7 +5,7 @@ import LogoIcon from "@/components/LogoIcon";
 import NotificationModal from "@/components/NotificationModal";
 import { getMe, logout } from "@/api/services/auth";
 import { markAllAsRead } from "@/api/services/notification";
-import { requestNotificationPermissionAndGetToken } from "@/lib/fcm";
+import { requestNotificationPermissionAndGetToken, onForegroundMessage } from "@/lib/fcm";
 // import { hasUnread } from "@/api/services/notification"; // 실제 API 사용 시
 import type { MeResponse } from "@/api/types/api.types";
 import { getAccessToken } from "@/api/utils/tokenStorage";
@@ -41,12 +41,30 @@ export default function Header() {
       requestNotificationPermissionAndGetToken();
     };
 
+    let unsubscribeForegroundMessage: (() => void) | null = null;
+
     getMe()
       .then((userData) => {
         setUser(userData);
         checkUnreadNotifications();
         
         initializeFcmToken();
+
+        // 포어그라운드 메시지 리스너 등록
+        onForegroundMessage((payload) => {
+          console.log('📨 포어그라운드 알림 수신:', payload);
+          // 알림이 오면 읽지 않은 알림 표시
+          setHasUnreadNotification(true);
+          // 필요하면 브라우저 알림 표시
+          if (Notification.permission === 'granted' && payload.notification) {
+            new Notification(payload.notification.title || '새 알림', {
+              body: payload.notification.body || '',
+              icon: payload.notification.icon || '/favicon.ico',
+            });
+          }
+        }).then((unsubscribe) => {
+          unsubscribeForegroundMessage = unsubscribe;
+        });
       })
       .finally(() => setLoading(false));
 
@@ -60,6 +78,9 @@ export default function Header() {
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (unsubscribeForegroundMessage) {
+        unsubscribeForegroundMessage();
+      }
     };
   }, []);
 
