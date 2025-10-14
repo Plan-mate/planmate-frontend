@@ -6,7 +6,6 @@ import NotificationModal from "@/components/NotificationModal";
 import { getMe, logout } from "@/api/services/auth";
 import { markAllAsRead } from "@/api/services/notification";
 import { requestNotificationPermissionAndGetToken, onForegroundMessage } from "@/lib/fcm";
-// import { hasUnread } from "@/api/services/notification"; // 실제 API 사용 시
 import type { MeResponse } from "@/api/types/api.types";
 import { getAccessToken } from "@/api/utils/tokenStorage";
 import "@/styles/header.css";
@@ -47,21 +46,10 @@ export default function Header() {
       .then((userData) => {
         setUser(userData);
         checkUnreadNotifications();
-        
         initializeFcmToken();
 
-        // 포어그라운드 메시지 리스너 등록
-        onForegroundMessage((payload) => {
-          console.log('📨 포어그라운드 알림 수신:', payload);
-          // 알림이 오면 읽지 않은 알림 표시
+        onForegroundMessage(() => {
           setHasUnreadNotification(true);
-          // 필요하면 브라우저 알림 표시
-          if (Notification.permission === 'granted' && payload.notification) {
-            new Notification(payload.notification.title || '새 알림', {
-              body: payload.notification.body || '',
-              icon: payload.notification.icon || '/favicon.ico',
-            });
-          }
         }).then((unsubscribe) => {
           unsubscribeForegroundMessage = unsubscribe;
         });
@@ -86,15 +74,7 @@ export default function Header() {
 
   const checkUnreadNotifications = async () => {
     try {
-      // 목 데이터: 읽지 않은 알림 있음으로 표시 (알림 있을 때 테스트용)
       setHasUnreadNotification(true);
-      
-      // 목 데이터: 읽지 않은 알림 없음으로 표시 (빈 알림 테스트용)
-      // setHasUnreadNotification(false);
-      
-      // 실제 API 사용 시:
-      // const unread = await hasUnread();
-      // setHasUnreadNotification(unread);
     } catch (error) {
       console.error('읽지 않은 알림 확인 실패:', error);
     }

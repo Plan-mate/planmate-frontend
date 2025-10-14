@@ -167,23 +167,24 @@ export default function ScheduleModal({ isOpen, onClose, onSubmit, categories, e
 
   useEffect(() => {
     if (isOpen && !isEditMode) {
-      const baseDateStr = initialDate ?? todayStr;
       const now = new Date();
       const nextHour = new Date(now);
       nextHour.setMinutes(0, 0, 0);
       nextHour.setHours(nextHour.getHours() + 1);
-      let proposedStartHour = nextHour.getHours();
-      let startTime: string;
-      let endTime: string;
-      if (proposedStartHour >= 23) {
-        startTime = `${baseDateStr}T23:00`;
-        endTime = `${baseDateStr}T23:59`;
-      } else {
-        const startHourStr = String(proposedStartHour).padStart(2, '0');
-        startTime = `${baseDateStr}T${startHourStr}:00`;
-        const endHourStr = String(proposedStartHour + 1).padStart(2, '0');
-        endTime = `${baseDateStr}T${endHourStr}:00`;
-      }
+      
+      const startDate = formatDate(nextHour);
+      const startHour = nextHour.getHours();
+      
+      const endHour = new Date(nextHour);
+      endHour.setHours(endHour.getHours() + 1);
+      const endDate = formatDate(endHour);
+      const endHourNum = endHour.getHours();
+      
+      const startHourStr = String(startHour).padStart(2, '0');
+      const endHourStr = String(endHourNum).padStart(2, '0');
+      
+      const startTime = `${startDate}T${startHourStr}:00`;
+      const endTime = `${endDate}T${endHourStr}:00`;
 
       setIsAllDay(false);
       setFormData(prev => ({
@@ -276,18 +277,21 @@ export default function ScheduleModal({ isOpen, onClose, onSubmit, categories, e
       const nextHour = new Date(now);
       nextHour.setMinutes(0, 0, 0);
       nextHour.setHours(nextHour.getHours() + 1);
-      let proposedStartHour = nextHour.getHours();
-      let startTime: string;
-      let endTime: string;
-      if (proposedStartHour >= 23) {
-        startTime = `${baseDate}T23:00`;
-        endTime = `${baseDate}T23:59`;
-      } else {
-        const startHourStr = String(proposedStartHour).padStart(2, '0');
-        startTime = `${baseDate}T${startHourStr}:00`;
-        const endHourStr = String(proposedStartHour + 1).padStart(2, '0');
-        endTime = `${baseDate}T${endHourStr}:00`;
-      }
+      
+      const startDate = formatDate(nextHour);
+      const startHour = nextHour.getHours();
+      
+      const endHour = new Date(nextHour);
+      endHour.setHours(endHour.getHours() + 1);
+      const endDate = formatDate(endHour);
+      const endHourNum = endHour.getHours();
+      
+      const startHourStr = String(startHour).padStart(2, '0');
+      const endHourStr = String(endHourNum).padStart(2, '0');
+      
+      const startTime = `${startDate}T${startHourStr}:00`;
+      const endTime = `${endDate}T${endHourStr}:00`;
+      
       setFormData(prev => ({ ...prev, startTime, endTime }));
     }
   };
@@ -308,22 +312,26 @@ export default function ScheduleModal({ isOpen, onClose, onSubmit, categories, e
     if (!formData.categoryId || formData.categoryId <= 0) {
       throw new Error('카테고리를 선택하세요');
     }
-    const req: CreateEventRequest = {
+    
+    const toKSTString = (datetimeLocal: string): string => {
+      return `${datetimeLocal}:00+09:00`;
+    };
+    
+    return {
       title: formData.title,
       description: formData.description,
       categoryId: formData.categoryId,
-      startTime: formData.startTime,
-      endTime: formData.endTime,
+      startTime: toKSTString(formData.startTime),
+      endTime: toKSTString(formData.endTime),
       isRecurring: formData.isRecurring,
       recurrenceRule: formData.isRecurring ? {
         frequency: recurrenceType,
         interval: 1,
         daysOfWeek: recurrenceType === 'WEEKLY' ? selectedDays : undefined,
         daysOfMonth: recurrenceType === 'MONTHLY' ? selectedDates : undefined,
-        endDate: recurrenceEndDate ? `${recurrenceEndDate}T23:59:59` : undefined,
+        endDate: recurrenceEndDate ? `${recurrenceEndDate}T23:59:59+09:00` : undefined,
       } : undefined,
     };
-    return req;
   };
 
   const getChangedFields = (original: Event, updated: CreateEventRequest) => {

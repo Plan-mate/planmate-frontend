@@ -201,15 +201,47 @@ export default function PlanPage() {
   const handleFirstScheduleAdd = async (dateFromList?: string | null, forceToday: boolean = false) => {
     const now = new Date();
     const koreaTime = new Date(now.getTime() + (9 * 60 * 60 * 1000));
-    const today = koreaTime.toISOString().split('T')[0];
+    const currentHour = koreaTime.getHours();
+    
+    let baseDate = new Date(koreaTime);
+    if (currentHour >= 23) {
+      baseDate.setDate(baseDate.getDate() + 1);
+    }
+    const today = baseDate.toISOString().split('T')[0];
     
     let targetDate: string;
     if (forceToday) {
       targetDate = today;
     } else if (dateFromList) {
-      targetDate = dateFromList;
+      const targetDateObj = new Date(dateFromList);
+      const todayDateObj = new Date(koreaTime);
+      todayDateObj.setHours(0, 0, 0, 0);
+      targetDateObj.setHours(0, 0, 0, 0);
+      
+      if (targetDateObj.getTime() === todayDateObj.getTime() && currentHour >= 23) {
+        const nextDay = new Date(targetDateObj);
+        nextDay.setDate(nextDay.getDate() + 1);
+        targetDate = nextDay.toISOString().split('T')[0];
+      } else {
+        targetDate = dateFromList;
+      }
     } else {
-      targetDate = selectedDate || today;
+      if (selectedDate) {
+        const targetDateObj = new Date(selectedDate);
+        const todayDateObj = new Date(koreaTime);
+        todayDateObj.setHours(0, 0, 0, 0);
+        targetDateObj.setHours(0, 0, 0, 0);
+        
+        if (targetDateObj.getTime() === todayDateObj.getTime() && currentHour >= 23) {
+          const nextDay = new Date(targetDateObj);
+          nextDay.setDate(nextDay.getDate() + 1);
+          targetDate = nextDay.toISOString().split('T')[0];
+        } else {
+          targetDate = selectedDate;
+        }
+      } else {
+        targetDate = today;
+      }
     }
     
     setRecommendTargetDate(targetDate);
