@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { LocationData, RecommendEventReqDto, getCategory, createEvent } from "@/api/services/plan";
+import { getCategory, createEvent } from "@/api/services/plan";
+import { LocationData, RecommendEventReqDto } from "@/api/types/api.types";
 import { Category } from "@/types/event";
 import { useToast } from "@/components/ToastProvider";
 import "@/styles/summaryModal.css";
@@ -72,22 +73,12 @@ export default function RecommendModal({ isOpen, onClose, locationData, onReload
       const target = mappedRecommendations.find(m => m.id === id);
       if (!target) return;
       
-      let adjustedStartTime = target.raw.startTime;
-      let adjustedEndTime = target.raw.endTime;
-      
-      if (targetDate) {
-        const backendTime = target.raw.startTime.split('T')[1];
-        const backendEndTime = target.raw.endTime.split('T')[1];
-        adjustedStartTime = `${targetDate}T${backendTime}`;
-        adjustedEndTime = `${targetDate}T${backendEndTime}`;
-      }
-      
       const createRequest = {
         title: target.raw.title,
         description: target.raw.description,
         categoryId: target.raw.categoryId,
-        startTime: adjustedStartTime,
-        endTime: adjustedEndTime,
+        startTime: target.raw.startTime,
+        endTime: target.raw.endTime,
         isRecurring: target.raw.isRecurring,
         recurrenceRule: target.raw.recurrenceRule
       };

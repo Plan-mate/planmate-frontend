@@ -313,23 +313,23 @@ export default function ScheduleModal({ isOpen, onClose, onSubmit, categories, e
       throw new Error('카테고리를 선택하세요');
     }
     
-    const toKSTString = (datetimeLocal: string): string => {
-      return `${datetimeLocal}:00+09:00`;
+    const toLocalDateTimeString = (datetimeLocal: string): string => {
+      return `${datetimeLocal}:00`;
     };
     
     return {
       title: formData.title,
       description: formData.description,
       categoryId: formData.categoryId,
-      startTime: toKSTString(formData.startTime),
-      endTime: toKSTString(formData.endTime),
+      startTime: toLocalDateTimeString(formData.startTime),
+      endTime: toLocalDateTimeString(formData.endTime),
       isRecurring: formData.isRecurring,
       recurrenceRule: formData.isRecurring ? {
         frequency: recurrenceType,
         interval: 1,
         daysOfWeek: recurrenceType === 'WEEKLY' ? selectedDays : undefined,
         daysOfMonth: recurrenceType === 'MONTHLY' ? selectedDates : undefined,
-        endDate: recurrenceEndDate ? `${recurrenceEndDate}T23:59:59+09:00` : undefined,
+        endDate: recurrenceEndDate ? `${recurrenceEndDate}T23:59:59` : undefined,
       } : undefined,
     };
   };
@@ -422,14 +422,12 @@ export default function ScheduleModal({ isOpen, onClose, onSubmit, categories, e
       
       if (isEditMode && editEvent) {
         if (!isInitialized) {
-          alert('아직 로딩 중입니다. 잠시 후 다시 시도해주세요.');
+          showToast('아직 로딩 중입니다. 잠시 후 다시 시도해주세요', 'error');
           setIsSubmitting(false);
           return;
         }
         
         const changedFields = getChangedFields(editEvent, req);
-        
-        
         
         if (Object.keys(changedFields).length === 0) {
           setNoChangesMessage('변경된 내용이 없습니다.');
@@ -461,8 +459,9 @@ export default function ScheduleModal({ isOpen, onClose, onSubmit, categories, e
       }
       
       handleClose();
-    } catch (err) {
-      alert(isEditMode ? '일정 수정에 실패했습니다. 잠시 후 다시 시도해주세요.' : '일정 생성에 실패했습니다. 잠시 후 다시 시도해주세요.');
+    } catch (err: any) {
+      const errorMsg = err?.response?.data?.message || err?.message || '알 수 없는 오류';
+      showToast(isEditMode ? '일정 수정에 실패했어요' : '일정 생성에 실패했어요', 'error');
     } finally {
       setIsSubmitting(false);
     }
