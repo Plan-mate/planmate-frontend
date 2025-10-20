@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import LogoIcon from "@/components/LogoIcon";
 import NotificationModal from "@/components/NotificationModal";
 import { getMe, logout } from "@/api/services/auth";
-import { markAllAsRead } from "@/api/services/notification";
+import { markAllAsRead, hasUnread } from "@/api/services/notification";
 import { requestNotificationPermissionAndGetToken, onForegroundMessage } from "@/lib/fcm";
 import type { MeResponse } from "@/api/types/api.types";
 import { getAccessToken } from "@/api/utils/tokenStorage";
@@ -59,6 +59,7 @@ export default function Header() {
     const handleVisibilityChange = () => {
       if (!document.hidden && getAccessToken()) {
         initializeFcmToken();
+        checkUnreadNotifications();
       }
     };
 
@@ -74,9 +75,11 @@ export default function Header() {
 
   const checkUnreadNotifications = async () => {
     try {
-      setHasUnreadNotification(true);
+      const hasUnreadNotifications = await hasUnread();
+      setHasUnreadNotification(hasUnreadNotifications);
     } catch (error) {
       console.error('읽지 않은 알림 확인 실패:', error);
+      setHasUnreadNotification(false);
     }
   };
 
@@ -84,14 +87,12 @@ export default function Header() {
     setIsNotificationModalOpen(true);
   };
 
-  const handleNotificationModalClose = async () => {
+  const handleNotificationModalClose = () => {
     setIsNotificationModalOpen(false);
-    try {
-      await markAllAsRead();
-      setHasUnreadNotification(false);
-    } catch (error) {
-      console.error('알림 읽음 처리 실패:', error);
-    }
+  };
+
+  const handleNotificationsRead = () => {
+    setHasUnreadNotification(false);
   };
   
   const renderUserSection = () => {
@@ -144,7 +145,8 @@ export default function Header() {
       </header>
       <NotificationModal 
         isOpen={isNotificationModalOpen} 
-        onClose={handleNotificationModalClose} 
+        onClose={handleNotificationModalClose}
+        onNotificationsRead={handleNotificationsRead}
       />
     </>
   );

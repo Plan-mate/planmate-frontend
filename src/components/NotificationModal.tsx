@@ -1,95 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
-// import { getMyNotifications } from "@/api/services/notification"; // 실제 API 사용 시
+import { getMyNotifications, markAllAsRead } from "@/api/services/notification";
 import type { NotificationDto } from "@/api/types/api.types";
 import "@/styles/notificationModal.css";
 
 interface NotificationModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onNotificationsRead?: () => void;
 }
 
-// 목 데이터 (알림이 있을 때 테스트용)
-const MOCK_NOTIFICATIONS: NotificationDto[] = [
-  {
-    id: 1,
-    title: "오늘의 일정 알림",
-    body: "30분 후 '팀 회의'가 시작됩니다. 준비해주세요!",
-    read: false,
-    triggerTime: new Date(Date.now() - 5 * 60000).toISOString(),
-    sentAt: new Date(Date.now() - 5 * 60000).toISOString(),
-    status: "SENT"
-  },
-  {
-    id: 2,
-    title: "일정 추천",
-    body: "오늘 날씨가 좋습니다. '공원 산책' 일정을 추가해보는 건 어떨까요?",
-    read: false,
-    triggerTime: new Date(Date.now() - 2 * 3600000).toISOString(),
-    sentAt: new Date(Date.now() - 2 * 3600000).toISOString(),
-    status: "SENT"
-  },
-  {
-    id: 3,
-    title: "일정 완료",
-    body: "'아침 운동' 일정을 완료하셨네요! 훌륭합니다 💪",
-    read: true,
-    triggerTime: new Date(Date.now() - 5 * 3600000).toISOString(),
-    sentAt: new Date(Date.now() - 5 * 3600000).toISOString(),
-    status: "SENT"
-  },
-  {
-    id: 4,
-    title: "다가오는 일정",
-    body: "내일 '치과 예약'이 있습니다. 시간을 확인해주세요.",
-    read: true,
-    triggerTime: new Date(Date.now() - 86400000).toISOString(),
-    sentAt: new Date(Date.now() - 86400000).toISOString(),
-    status: "SENT"
-  },
-  {
-    id: 5,
-    title: "주간 리포트",
-    body: "이번 주 완료한 일정: 15개 🎉 목표 달성률 85%입니다!",
-    read: true,
-    triggerTime: new Date(Date.now() - 2 * 86400000).toISOString(),
-    sentAt: new Date(Date.now() - 2 * 86400000).toISOString(),
-    status: "SENT"
-  },
-  {
-    id: 6,
-    title: "날씨 알림",
-    body: "오늘 오후 비 예보가 있습니다. 우산을 챙겨주세요 ☔",
-    read: true,
-    triggerTime: new Date(Date.now() - 3 * 86400000).toISOString(),
-    sentAt: new Date(Date.now() - 3 * 86400000).toISOString(),
-    status: "SENT"
-  },
-  {
-    id: 7,
-    title: "반복 일정 알림",
-    body: "'영어 공부' 시간입니다. 오늘도 화이팅!",
-    read: true,
-    triggerTime: new Date(Date.now() - 5 * 86400000).toISOString(),
-    sentAt: new Date(Date.now() - 5 * 86400000).toISOString(),
-    status: "SENT"
-  },
-  {
-    id: 8,
-    title: "일정 변경 알림",
-    body: "'프로젝트 미팅' 일정이 오후 3시로 변경되었습니다.",
-    read: true,
-    triggerTime: new Date(Date.now() - 7 * 86400000).toISOString(),
-    sentAt: new Date(Date.now() - 7 * 86400000).toISOString(),
-    status: "SENT"
-  }
-];
 
-// 빈 알림 (알림이 없을 때 테스트용)
-// const MOCK_NOTIFICATIONS: NotificationDto[] = [];
-
-export default function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
+export default function NotificationModal({ isOpen, onClose, onNotificationsRead }: NotificationModalProps) {
   const [notifications, setNotifications] = useState<NotificationDto[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -102,17 +25,24 @@ export default function NotificationModal({ isOpen, onClose }: NotificationModal
   const loadNotifications = async () => {
     setLoading(true);
     try {
-      // 목 데이터 사용 (실제 API 호출 대신)
-      await new Promise(resolve => setTimeout(resolve, 500)); // 로딩 시뮬레이션
-      setNotifications(MOCK_NOTIFICATIONS);
-      
-      // 실제 API 사용 시:
-      // const data = await getMyNotifications();
-      // setNotifications(data);
+      const data = await getMyNotifications();
+      setNotifications(data);
     } catch (error) {
       console.error('알림 목록을 불러오는데 실패했습니다:', error);
+      setNotifications([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleClose = async () => {
+    try {
+      await markAllAsRead();
+      onNotificationsRead?.();
+    } catch (error) {
+      console.error('알림 읽음 처리 실패:', error);
+    } finally {
+      onClose();
     }
   };
 
@@ -141,11 +71,11 @@ export default function NotificationModal({ isOpen, onClose }: NotificationModal
 
   return (
     <>
-      <div className="notification-modal-overlay" onClick={onClose} />
+      <div className="notification-modal-overlay" onClick={handleClose} />
       <div className="notification-modal">
         <div className="notification-modal-header">
           <h3>알림</h3>
-          <button className="notification-close-btn" onClick={onClose} aria-label="닫기">
+          <button className="notification-close-btn" onClick={handleClose} aria-label="닫기">
             ×
           </button>
         </div>
