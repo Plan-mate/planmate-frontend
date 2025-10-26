@@ -2,7 +2,7 @@ import axios, { InternalAxiosRequestConfig, AxiosError } from 'axios';
 import { getAccessToken, getRefreshToken, setTokens, removeTokens } from './utils/tokenStorage';
 import type { AxiosRequestHeaders } from 'axios';
 
-const API_BASE_URL = 'http://127.0.0.1:8080/api/';
+const API_BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
 const TIMEOUT = 10000;
 
 const apiClient = axios.create({
