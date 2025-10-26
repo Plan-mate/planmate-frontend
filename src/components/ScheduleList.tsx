@@ -2,6 +2,7 @@
 
 import { Event, Category, Scope } from "@/types/event";
 import { formatDisplayDate, formatDisplayMonth, formatDisplayTime } from "@/utils/date";
+import { isPastEvent, canEditEvent, getEventsForDate, getCurrentMonthEvents } from "@/utils/eventFilters";
 import RecurrenceBadge from "./RecurrenceBadge";
 
 interface ScheduleListProps {
@@ -33,52 +34,17 @@ export default function ScheduleList({
   onDeleteEvent,
   onFirstScheduleAdd
 }: ScheduleListProps) {
-  const isPastEvent = (event: Event) => {
-    const today = new Date();
-    const todayStr = today.toISOString().split('T')[0];
-    const eventEndDateStr = event.endTime.split('T')[0];
-    return eventEndDateStr < todayStr;
-  };
+  const filteredEvents = selectedDate 
+    ? getEventsForDate(selectedDate, events)
+    : getCurrentMonthEvents(currentMonth, events);
 
-  const canEditEvent = (event: Event) => {
-    const today = new Date();
-    const todayStr = today.toISOString().split('T')[0];
-    const eventStartDateStr = event.startTime.split('T')[0];
-    const eventEndDateStr = event.endTime.split('T')[0];
-    
-    if (eventStartDateStr <= todayStr && eventEndDateStr >= todayStr) {
-      return true;
+  const getEmptyStateMessage = () => {
+    if (selectedDate) {
+      return '이 날짜에 등록된 일정이 없습니다.';
     }
-    
-    if (eventEndDateStr < todayStr) {
-      return false;
-    }
-    
-    return true;
+    return `${formatDisplayMonth(currentMonth)} 등록된 일정이 없습니다.`;
   };
 
-  const getEventsForDate = (date: string) => {
-    return events.filter(event => {
-      const eventStartDate = new Date(event.startTime.split('T')[0]);
-      const eventEndDate = new Date(event.endTime.split('T')[0]);
-      const currentDate = new Date(date);
-      return currentDate >= eventStartDate && currentDate <= eventEndDate;
-    });
-  };
-
-  const getCurrentMonthEvents = () => {
-    if (!currentMonth) return [];
-    
-    const [year, month] = currentMonth.split('-').map(Number);
-    const startOfMonth = new Date(year, month - 1, 1);
-    const endOfMonth = new Date(year, month, 0);
-    
-    return events.filter(event => {
-      const eventStartDate = new Date(event.startTime.split('T')[0]);
-      const eventEndDate = new Date(event.endTime.split('T')[0]);
-      return (eventStartDate <= endOfMonth && eventEndDate >= startOfMonth);
-    });
-  };
   if (viewMode === 'detail' && selectedEvent) {
     return (
       <div className="schedule-detail">
@@ -155,17 +121,6 @@ export default function ScheduleList({
       </div>
     );
   }
-
-  const filteredEvents = selectedDate 
-    ? getEventsForDate(selectedDate)
-    : getCurrentMonthEvents();
-
-  const getEmptyStateMessage = () => {
-    if (selectedDate) {
-      return '이 날짜에 등록된 일정이 없습니다.';
-    }
-    return `${formatDisplayMonth(currentMonth)} 등록된 일정이 없습니다.`;
-  };
 
   return (
     <div className="schedule-list">
