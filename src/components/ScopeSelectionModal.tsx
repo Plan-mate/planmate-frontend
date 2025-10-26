@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { Event, Scope } from "@/types/event";
 
 interface ScopeSelectionModalProps {
@@ -29,6 +30,19 @@ export default function ScopeSelectionModal({
   event,
   mode = 'edit'
 }: ScopeSelectionModalProps) {
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+    
+    if (isOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const isDelete = mode === 'delete';

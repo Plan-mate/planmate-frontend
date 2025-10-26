@@ -53,7 +53,7 @@ export default function PlanPage() {
     handleConfirmDelete
   } = useEventManagement();
 
-  const { resolvedLocation, summaryShownRef } = useLocation();
+  const { resolvedLocation, shouldShowSummary, setShouldShowSummary } = useLocation();
 
   const {
     isRecommendOpen,
@@ -244,10 +244,11 @@ export default function PlanPage() {
   }, [currentMonth]);
 
   useEffect(() => {
-    if (summaryShownRef.current) {
+    if (shouldShowSummary) {
       setIsSummaryModalOpen(true);
+      setShouldShowSummary(false);
     }
-  }, [summaryShownRef]);
+  }, [shouldShowSummary, setShouldShowSummary]);
 
   return (
     <>

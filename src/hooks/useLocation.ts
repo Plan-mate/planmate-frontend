@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { getLocation, getWeatherLocationInfo } from '@/utils/location';
 import { checkDailyLogin } from '@/api/services/auth';
 import type { LocationData } from '@/api/types/api.types';
@@ -7,7 +7,7 @@ import { useToast } from '@/components/ToastProvider';
 export const useLocation = () => {
   const { showToast } = useToast();
   const [resolvedLocation, setResolvedLocation] = useState<LocationData | null>(null);
-  const summaryShownRef = { current: false };
+  const [shouldShowSummary, setShouldShowSummary] = useState<boolean>(false);
 
   const requestLocationPermission = async (): Promise<{lat: number, lon: number} | null> => {
     try {
@@ -113,7 +113,7 @@ export const useLocation = () => {
         
         try {
           if (login.firstLoginToday) {
-            summaryShownRef.current = true;
+            setShouldShowSummary(true);
           }
         } catch {}
       } catch (e) {}
@@ -126,7 +126,8 @@ export const useLocation = () => {
 
   return {
     resolvedLocation,
-    summaryShownRef
+    shouldShowSummary,
+    setShouldShowSummary
   };
 };
 

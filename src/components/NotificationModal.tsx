@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { getMyNotifications, markAllAsRead } from "@/api/services/notification";
 import type { NotificationDto } from "@/api/types/api.types";
 import { formatDate } from "@/utils/dateFormatting";
@@ -16,12 +16,6 @@ export default function NotificationModal({ isOpen, onClose, onNotificationsRead
   const [notifications, setNotifications] = useState<NotificationDto[]>([]);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (isOpen) {
-      loadNotifications();
-    }
-  }, [isOpen]);
-
   const loadNotifications = async () => {
     setLoading(true);
     try {
@@ -35,7 +29,7 @@ export default function NotificationModal({ isOpen, onClose, onNotificationsRead
     }
   };
 
-  const handleClose = async () => {
+  const handleClose = useCallback(async () => {
     try {
       await markAllAsRead();
       onNotificationsRead?.();
@@ -44,7 +38,26 @@ export default function NotificationModal({ isOpen, onClose, onNotificationsRead
     } finally {
       onClose();
     }
-  };
+  }, [onClose, onNotificationsRead]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        handleClose();
+      }
+    };
+    
+    if (isOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [isOpen, handleClose]);
+
+  useEffect(() => {
+    if (isOpen) {
+      loadNotifications();
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 

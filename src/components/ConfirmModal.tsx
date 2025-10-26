@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect } from "react";
+
 interface ConfirmModalProps {
   isOpen: boolean;
   title: string;
@@ -11,6 +13,19 @@ interface ConfirmModalProps {
 }
 
 export default function ConfirmModal({ isOpen, title, description, confirmText = '확인', cancelText = '취소', onConfirm, onClose }: ConfirmModalProps) {
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+    
+    if (isOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
   return (
     <div className="modal-overlay" onClick={onClose}>

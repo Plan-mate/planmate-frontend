@@ -40,6 +40,19 @@ export default function SummaryModal({ isOpen, onClose, locationData, onRecommen
   const noEventsText = "오늘은 추가된 일정이 없네요.\n버튼을 눌러 오늘에 어울리는 일정을 추천받아 보세요.";
 
   useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+    
+    if (isOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [isOpen, onClose]);
+
+  useEffect(() => {
     if (isOpen) {
       if (!summaryData) {
         loadWeatherSummary();

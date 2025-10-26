@@ -441,6 +441,19 @@ export default function ScheduleModal({ isOpen, onClose, onSubmit, categories, e
     onClose();
   };
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        handleClose();
+      }
+    };
+    
+    if (isOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const startDateOnly = formData.startTime ? formData.startTime.slice(0,10) : todayStr;

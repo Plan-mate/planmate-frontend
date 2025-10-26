@@ -26,6 +26,19 @@ export default function RecommendModal({ isOpen, onClose, locationData, onReload
   const [categoriesLocal, setCategoriesLocal] = useState<Category[]>(categories);
 
   useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+    
+    if (isOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [isOpen, onClose]);
+
+  useEffect(() => {
     if (!isOpen) {
       setPending(null);
       setAddedIds(new Set());
