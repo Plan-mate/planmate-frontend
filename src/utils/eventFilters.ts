@@ -1,15 +1,14 @@
 import { Event } from "@/types/event";
+import { getKoreaDateString } from "@/utils/date";
 
 export const isPastEvent = (event: Event): boolean => {
-  const today = new Date();
-  const todayStr = today.toISOString().split('T')[0];
+  const todayStr = getKoreaDateString();
   const eventEndDateStr = event.endTime.split('T')[0];
   return eventEndDateStr < todayStr;
 };
 
 export const canEditEvent = (event: Event): boolean => {
-  const today = new Date();
-  const todayStr = today.toISOString().split('T')[0];
+  const todayStr = getKoreaDateString();
   const eventStartDateStr = event.startTime.split('T')[0];
   const eventEndDateStr = event.endTime.split('T')[0];
   

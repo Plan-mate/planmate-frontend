@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect } from "react";
 import { Event } from "@/types/event";
 import EventIndicators from "./Calendar/EventIndicators";
 import { formatDate, isToday, isCurrentMonth, getEventsForDate, generateCalendarDays } from "@/utils/calendarHelpers";
+import { getKoreaDate } from "@/utils/date";
 
 interface CalendarProps {
   events: Event[];
@@ -16,7 +17,7 @@ interface CalendarProps {
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
 export default function Calendar({ events, selectedDate, onDateSelect, onMonthChange, onDateClickForAdd }: CalendarProps) {
-  const [currentDate, setCurrentDate] = useState(new Date());
+  const [currentDate, setCurrentDate] = useState(() => getKoreaDate());
   const [pendingMonthChange, setPendingMonthChange] = useState<string | null>(null);
 
   useEffect(() => {
@@ -40,7 +41,7 @@ export default function Calendar({ events, selectedDate, onDateSelect, onMonthCh
   };
 
   const goToToday = () => {
-    const today = new Date();
+    const today = getKoreaDate();
     setCurrentDate(today);
     const monthStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
     setPendingMonthChange(monthStr);

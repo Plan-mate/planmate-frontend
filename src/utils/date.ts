@@ -1,3 +1,19 @@
+export const getKoreaDate = (): Date => {
+  const now = new Date();
+  const koreaOffset = 9 * 60;
+  const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+  const koreaTime = new Date(utc + (koreaOffset * 60000));
+  return koreaTime;
+};
+
+export const getKoreaDateString = (): string => {
+  const koreaTime = getKoreaDate();
+  const year = koreaTime.getFullYear();
+  const month = String(koreaTime.getMonth() + 1).padStart(2, '0');
+  const day = String(koreaTime.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 export const formatDateYMD = (d: Date): string => {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -6,11 +22,11 @@ export const formatDateYMD = (d: Date): string => {
 };
 
 export const todayYMD = (): string => {
-  return formatDateYMD(new Date());
+  return formatDateYMD(getKoreaDate());
 };
 
 export const threeWeeksLaterYMD = (): string => {
-  const d = new Date();
+  const d = getKoreaDate();
   d.setDate(d.getDate() + 21);
   return formatDateYMD(d);
 };
@@ -47,7 +63,7 @@ export const calculateDurationInDays = (startTime: string, endTime: string): num
 };
 
 export const getCurrentMonthString = (): string => {
-  const today = new Date();
+  const today = getKoreaDate();
   return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
 };
 

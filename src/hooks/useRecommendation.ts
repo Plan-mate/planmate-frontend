@@ -3,6 +3,7 @@ import { Event } from '@/types/event';
 import { getRecommendations } from '@/api/services/summary';
 import type { LocationData, RecommendEventReqDto } from '@/api/types/api.types';
 import { useToast } from '@/components/ToastProvider';
+import { getKoreaDate, formatDateYMD } from '@/utils/date';
 
 export const useRecommendation = (resolvedLocation: LocationData | null) => {
   const { showToast } = useToast();
@@ -17,15 +18,14 @@ export const useRecommendation = (resolvedLocation: LocationData | null) => {
     selectedDate: string | null,
     forceToday?: boolean
   ) => {
-    const now = new Date();
-    const koreaTime = new Date(now.getTime() + (9 * 60 * 60 * 1000));
+    const koreaTime = getKoreaDate();
     const currentHour = koreaTime.getHours();
     
     let baseDate = new Date(koreaTime);
     if (currentHour >= 23) {
       baseDate.setDate(baseDate.getDate() + 1);
     }
-    const today = baseDate.toISOString().split('T')[0];
+    const today = formatDateYMD(baseDate);
     
     let targetDate: string;
     if (forceToday) {
@@ -39,7 +39,7 @@ export const useRecommendation = (resolvedLocation: LocationData | null) => {
       if (targetDateObj.getTime() === todayDateObj.getTime() && currentHour >= 23) {
         const nextDay = new Date(targetDateObj);
         nextDay.setDate(nextDay.getDate() + 1);
-        targetDate = nextDay.toISOString().split('T')[0];
+        targetDate = formatDateYMD(nextDay);
       } else {
         targetDate = dateFromList;
       }
@@ -53,7 +53,7 @@ export const useRecommendation = (resolvedLocation: LocationData | null) => {
         if (targetDateObj.getTime() === todayDateObj.getTime() && currentHour >= 23) {
           const nextDay = new Date(targetDateObj);
           nextDay.setDate(nextDay.getDate() + 1);
-          targetDate = nextDay.toISOString().split('T')[0];
+          targetDate = formatDateYMD(nextDay);
         } else {
           targetDate = selectedDate;
         }

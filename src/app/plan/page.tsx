@@ -12,7 +12,7 @@ import ConfirmModal from "@/components/ConfirmModal";
 import SummaryModal from "@/components/SummaryModal";
 import RecommendModal from "@/components/RecommendModal";
 import { Event, Scope } from "@/types/event";
-import { getCurrentMonthString } from "@/utils/date";
+import { getCurrentMonthString, getKoreaDateString } from "@/utils/date";
 import { useEventManagement } from "@/hooks/useEventManagement";
 import { useLocation } from "@/hooks/useLocation";
 import { useRecommendation } from "@/hooks/useRecommendation";
@@ -345,9 +345,7 @@ export default function PlanPage() {
         onClose={() => setIsSummaryModalOpen(false)}
         locationData={resolvedLocation || undefined}
         onRecommend={() => {
-          const now = new Date();
-          const koreaTime = new Date(now.getTime() + (9 * 60 * 60 * 1000));
-          const today = koreaTime.toISOString().split('T')[0];
+          const today = getKoreaDateString();
           handleFirstScheduleAdd(null, today);
         }}
       />

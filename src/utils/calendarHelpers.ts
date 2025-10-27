@@ -1,4 +1,5 @@
 import { Event } from "@/types/event";
+import { getKoreaDate } from "@/utils/date";
 
 export const formatDate = (date: Date): string => {
   const year = date.getFullYear();
@@ -8,7 +9,7 @@ export const formatDate = (date: Date): string => {
 };
 
 export const isToday = (date: Date): boolean => {
-  const today = new Date();
+  const today = getKoreaDate();
   return date.toDateString() === today.toDateString();
 };
 
