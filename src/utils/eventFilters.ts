@@ -25,9 +25,12 @@ export const canEditEvent = (event: Event): boolean => {
 
 export const getEventsForDate = (date: string, events: Event[]): Event[] => {
   return events.filter(event => {
-    const eventStartDate = new Date(event.startTime.split('T')[0]);
-    const eventEndDate = new Date(event.endTime.split('T')[0]);
-    const currentDate = new Date(date);
+    const [sY, sM, sD] = event.startTime.split('T')[0].split('-').map(Number);
+    const [eY, eM, eD] = event.endTime.split('T')[0].split('-').map(Number);
+    const [cY, cM, cD] = date.split('-').map(Number);
+    const eventStartDate = new Date(sY, (sM || 1) - 1, sD || 1);
+    const eventEndDate = new Date(eY, (eM || 1) - 1, eD || 1);
+    const currentDate = new Date(cY, (cM || 1) - 1, cD || 1);
     return currentDate >= eventStartDate && currentDate <= eventEndDate;
   });
 };
@@ -36,12 +39,14 @@ export const getCurrentMonthEvents = (currentMonth: string, events: Event[]): Ev
   if (!currentMonth) return [];
   
   const [year, month] = currentMonth.split('-').map(Number);
-  const startOfMonth = new Date(year, month - 1, 1);
-  const endOfMonth = new Date(year, month, 0);
+  const startOfMonth = new Date(year, (month || 1) - 1, 1);
+  const endOfMonth = new Date(year, (month || 1), 0);
   
   return events.filter(event => {
-    const eventStartDate = new Date(event.startTime.split('T')[0]);
-    const eventEndDate = new Date(event.endTime.split('T')[0]);
+    const [sY, sM, sD] = event.startTime.split('T')[0].split('-').map(Number);
+    const [eY, eM, eD] = event.endTime.split('T')[0].split('-').map(Number);
+    const eventStartDate = new Date(sY, (sM || 1) - 1, sD || 1);
+    const eventEndDate = new Date(eY, (eM || 1) - 1, eD || 1);
     return (eventStartDate <= endOfMonth && eventEndDate >= startOfMonth);
   });
 };

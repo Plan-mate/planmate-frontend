@@ -12,7 +12,7 @@ import ConfirmModal from "@/components/ConfirmModal";
 import SummaryModal from "@/components/SummaryModal";
 import RecommendModal from "@/components/RecommendModal";
 import { Event, Scope } from "@/types/event";
-import { getCurrentMonthString, getKoreaDateString } from "@/utils/date";
+import { getCurrentMonthString, getKoreaDateString, parseYMDToLocalDate } from "@/utils/date";
 import { useEventManagement } from "@/hooks/useEventManagement";
 import { useLocation } from "@/hooks/useLocation";
 import { useRecommendation } from "@/hooks/useRecommendation";
@@ -95,7 +95,7 @@ export default function PlanPage() {
 
   const handleViewAllEvents = () => {
     if (selectedDate) {
-      const selectedDateObj = new Date(selectedDate);
+      const selectedDateObj = parseYMDToLocalDate(selectedDate);
       const monthStr = `${selectedDateObj.getFullYear()}-${String(selectedDateObj.getMonth() + 1).padStart(2, '0')}`;
       setCurrentMonth(monthStr);
     }

@@ -68,7 +68,13 @@ export const getCurrentMonthString = (): string => {
 };
 
 export const formatDisplayDate = (dateStr: string): string => {
-  const date = new Date(dateStr);
+  let date: Date;
+  if (dateStr && dateStr.length === 10 && dateStr.indexOf('T') === -1) {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    date = new Date(y, (m || 1) - 1, d || 1);
+  } else {
+    date = new Date(dateStr);
+  }
   const month = date.getMonth() + 1;
   const day = date.getDate();
   const dayOfWeek = ['일', '월', '화', '수', '목', '금', '토'][date.getDay()];
@@ -82,6 +88,11 @@ export const formatDisplayMonth = (monthStr: string): string => {
 
 export const formatDisplayTime = (dateTimeStr: string): string => {
   return dateTimeStr.split('T')[1].substring(0, 5);
+};
+
+export const parseYMDToLocalDate = (ymd: string): Date => {
+  const [y, m, d] = ymd.split('-').map(Number);
+  return new Date(y, (m || 1) - 1, d || 1);
 };
 
 

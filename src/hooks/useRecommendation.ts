@@ -3,7 +3,7 @@ import { Event } from '@/types/event';
 import { getRecommendations } from '@/api/services/summary';
 import type { LocationData, RecommendEventReqDto } from '@/api/types/api.types';
 import { useToast } from '@/components/ToastProvider';
-import { getKoreaDate, formatDateYMD } from '@/utils/date';
+import { getKoreaDate, formatDateYMD, parseYMDToLocalDate } from '@/utils/date';
 
 export const useRecommendation = (resolvedLocation: LocationData | null) => {
   const { showToast } = useToast();
@@ -31,7 +31,7 @@ export const useRecommendation = (resolvedLocation: LocationData | null) => {
     if (forceToday) {
       targetDate = today;
     } else if (dateFromList) {
-      const targetDateObj = new Date(dateFromList);
+      const targetDateObj = parseYMDToLocalDate(dateFromList);
       const todayDateObj = new Date(koreaTime);
       todayDateObj.setHours(0, 0, 0, 0);
       targetDateObj.setHours(0, 0, 0, 0);
@@ -45,7 +45,7 @@ export const useRecommendation = (resolvedLocation: LocationData | null) => {
       }
     } else {
       if (selectedDate) {
-        const targetDateObj = new Date(selectedDate);
+        const targetDateObj = parseYMDToLocalDate(selectedDate);
         const todayDateObj = new Date(koreaTime);
         todayDateObj.setHours(0, 0, 0, 0);
         targetDateObj.setHours(0, 0, 0, 0);
