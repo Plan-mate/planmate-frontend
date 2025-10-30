@@ -5,16 +5,30 @@ import { saveFcmToken } from '@/api/services/auth';
 const VAPID_KEY = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
 const FCM_TOKEN_KEY = 'fcm_token';
 
-function getStoredFcmToken(): string | null {
-  return localStorage.getItem(FCM_TOKEN_KEY);
+type StoredFcm = { token: string; userId?: number | null } | null;
+
+function readStoredFcm(): StoredFcm {
+  try {
+    const raw = localStorage.getItem(FCM_TOKEN_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed.token === 'string') {
+      return { token: parsed.token, userId: typeof parsed.userId === 'number' ? parsed.userId : null };
+    }
+    return null;
+  } catch {
+    return null;
+  }
 }
 
-function setStoredFcmToken(token: string): void {
-  localStorage.setItem(FCM_TOKEN_KEY, token);
+function writeStoredFcm(token: string, userId?: number | null): void {
+  try {
+    localStorage.setItem(FCM_TOKEN_KEY, JSON.stringify({ token, userId: userId ?? null }));
+  } catch {}
 }
 
 function clearStoredFcmToken(): void {
-  localStorage.removeItem(FCM_TOKEN_KEY);
+  try { localStorage.removeItem(FCM_TOKEN_KEY); } catch {}
 }
 
 async function registerServiceWorkerWithConfig(): Promise<ServiceWorkerRegistration | null> {
@@ -82,7 +96,7 @@ async function registerServiceWorkerWithConfig(): Promise<ServiceWorkerRegistrat
   }
 }
 
-export async function requestNotificationPermissionAndGetToken(): Promise<string | null> {
+export async function requestNotificationPermissionAndGetToken(userId?: number, forceSave?: boolean): Promise<string | null> {
   try {
     if (typeof window === 'undefined' || !('Notification' in window)) return null;
 
@@ -122,18 +136,24 @@ export async function requestNotificationPermissionAndGetToken(): Promise<string
       });
 
       if (currentToken) {
-        const storedToken = getStoredFcmToken();
-        
-        if (storedToken !== currentToken) {
+        const stored = readStoredFcm();
+        const shouldSave = Boolean(
+          forceSave ||
+          !stored ||
+          stored.token !== currentToken ||
+          (typeof userId === 'number' && stored.userId !== userId)
+        );
+
+        if (shouldSave) {
           try {
             await saveFcmToken(currentToken);
-            setStoredFcmToken(currentToken);
+            writeStoredFcm(currentToken, userId ?? null);
           } catch (error: any) {
             console.error('FCM 토큰 저장 실패:', error?.response?.data?.message || error.message);
-            return null;
+            // 토큰 자체는 반환하여 이후 재시도 기회 유지
           }
         }
-        
+
         return currentToken;
       }
     } else if (permission === 'denied') {

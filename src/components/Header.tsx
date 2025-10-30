@@ -36,8 +36,8 @@ export default function Header() {
       return;
     }
 
-    const initializeFcmToken = () => {
-      requestNotificationPermissionAndGetToken();
+    const initializeFcmToken = (uid?: number) => {
+      requestNotificationPermissionAndGetToken(uid, true);
     };
 
     let unsubscribeForegroundMessage: (() => void) | null = null;
@@ -46,7 +46,7 @@ export default function Header() {
       .then((userData) => {
         setUser(userData);
         checkUnreadNotifications();
-        initializeFcmToken();
+        initializeFcmToken(userData.id);
 
         onForegroundMessage(() => {
           setHasUnreadNotification(true);
@@ -58,7 +58,7 @@ export default function Header() {
 
     const handleVisibilityChange = () => {
       if (!document.hidden && getAccessToken()) {
-        initializeFcmToken();
+        initializeFcmToken(user?.id ?? undefined);
         checkUnreadNotifications();
       }
     };
