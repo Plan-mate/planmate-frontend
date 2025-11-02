@@ -144,12 +144,17 @@ export default function ScheduleModal({ isOpen, onClose, onSubmit, categories, e
 
   useEffect(() => {
     if (isOpen && isEditMode && editEvent) {
+      const formatForDatetimeLocal = (dateTime: string): string => {
+        if (!dateTime) return dateTime;
+        return dateTime.substring(0, 16);
+      };
+      
       setFormData({
         title: editEvent.title,
         description: editEvent.description,
         categoryId: editEvent.category.id,
-        startTime: editEvent.startTime,
-        endTime: editEvent.endTime,
+        startTime: formatForDatetimeLocal(editEvent.startTime),
+        endTime: formatForDatetimeLocal(editEvent.endTime),
         isRecurring: editEvent.isRecurring,
       });
       
@@ -255,21 +260,29 @@ export default function ScheduleModal({ isOpen, onClose, onSubmit, categories, e
     }
   };
 
+  const normalizeDatetime = (dt: string): string => {
+    if (!dt) return dt;
+    if (dt.includes('T')) {
+      const [datePart, timePart] = dt.split('T');
+      if (timePart && timePart.includes(':')) {
+        const [hour, minute] = timePart.split(':');
+        return `${datePart}T${hour}:${minute}:00`;
+      }
+    }
+    return `${dt}:00`;
+  };
+
   const buildRequest = (): CreateEventRequest => {
     if (!formData.categoryId || formData.categoryId <= 0) {
       throw new Error('카테고리를 선택하세요');
     }
     
-    const toLocalDateTimeString = (datetimeLocal: string): string => {
-      return `${datetimeLocal}:00`;
-    };
-    
     return {
       title: formData.title,
       description: formData.description,
       categoryId: formData.categoryId,
-      startTime: toLocalDateTimeString(formData.startTime),
-      endTime: toLocalDateTimeString(formData.endTime),
+      startTime: normalizeDatetime(formData.startTime),
+      endTime: normalizeDatetime(formData.endTime),
       isRecurring: formData.isRecurring,
       recurrenceRule: formData.isRecurring ? {
         frequency: recurrenceType,
@@ -296,11 +309,11 @@ export default function ScheduleModal({ isOpen, onClose, onSubmit, categories, e
       changes.categoryId = updated.categoryId;
     }
     
-    if (original.startTime !== updated.startTime) {
+    if (normalizeDatetime(original.startTime) !== normalizeDatetime(updated.startTime)) {
       changes.startTime = updated.startTime;
     }
     
-    if (original.endTime !== updated.endTime) {
+    if (normalizeDatetime(original.endTime) !== normalizeDatetime(updated.endTime)) {
       changes.endTime = updated.endTime;
     }
     
