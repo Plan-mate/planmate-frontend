@@ -1,9 +1,24 @@
 export const getKoreaDate = (): Date => {
   const now = new Date();
-  const koreaOffset = 9 * 60;
-  const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-  const koreaTime = new Date(utc + (koreaOffset * 60000));
-  return koreaTime;
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  });
+  const parts = formatter.formatToParts(now);
+  const get = (type: Intl.DateTimeFormatPartTypes) => parts.find(p => p.type === type)?.value || '00';
+  const year = Number(get('year'));
+  const month = Number(get('month')) - 1;
+  const day = Number(get('day'));
+  const hour = Number(get('hour'));
+  const minute = Number(get('minute'));
+  const second = Number(get('second'));
+  return new Date(year, month, day, hour, minute, second);
 };
 
 export const getKoreaDateString = (): string => {
@@ -73,7 +88,9 @@ export const formatDisplayDate = (dateStr: string): string => {
     const [y, m, d] = dateStr.split('-').map(Number);
     date = new Date(y, (m || 1) - 1, d || 1);
   } else {
-    date = new Date(dateStr);
+    const onlyDate = dateStr.split('T')[0];
+    const [y, m, d] = onlyDate.split('-').map(Number);
+    date = new Date(y, (m || 1) - 1, d || 1);
   }
   const month = date.getMonth() + 1;
   const day = date.getDate();
