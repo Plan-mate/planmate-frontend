@@ -114,31 +114,36 @@ export default function ScheduleModal({ isOpen, onClose, onSubmit, categories, e
 
   useEffect(() => {
     if (isOpen && !isEditMode) {
+      // 달력에서 클릭한 날짜가 있으면 해당 날짜를 기본으로 사용
+      if (initialDate) {
+        const defaultStart = `${initialDate}T09:00`;
+        const defaultEnd = `${initialDate}T10:00`;
+        setIsAllDay(false);
+        setFormData(prev => ({
+          ...prev,
+          startTime: defaultStart,
+          endTime: defaultEnd
+        }));
+        return;
+      }
+
+      // 기본: 현재 시각 기준 다음 정시 ~ 1시간 후
       const now = new Date();
       const nextHour = new Date(now);
       nextHour.setMinutes(0, 0, 0);
       nextHour.setHours(nextHour.getHours() + 1);
-      
       const startDate = formatDate(nextHour);
       const startHour = nextHour.getHours();
-      
       const endHour = new Date(nextHour);
       endHour.setHours(endHour.getHours() + 1);
       const endDate = formatDate(endHour);
       const endHourNum = endHour.getHours();
-      
       const startHourStr = String(startHour).padStart(2, '0');
       const endHourStr = String(endHourNum).padStart(2, '0');
-      
       const startTime = `${startDate}T${startHourStr}:00`;
       const endTime = `${endDate}T${endHourStr}:00`;
-
       setIsAllDay(false);
-      setFormData(prev => ({
-        ...prev,
-        startTime,
-        endTime
-      }));
+      setFormData(prev => ({ ...prev, startTime, endTime }));
     }
   }, [isOpen, isEditMode, initialDate]);
 
